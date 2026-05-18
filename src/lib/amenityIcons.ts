@@ -1,0 +1,43 @@
+import {
+  RiMusic2Line,
+  RiWifiLine,
+  RiWindyLine,
+  RiParkingLine,
+  RiDropLine,
+  RiCupLine,
+  RiGobletLine,
+  RiRestaurantLine,
+  RiRunLine,
+  RiLeafLine,
+  RiPlantLine,
+  RiSunLine,
+  RiDoorLine,
+  RiVolumeUpLine,
+  RiMicLine,
+  RiSlideshowLine,
+  RiBuildingLine,
+  RiHeartPulseLine,
+} from "react-icons/ri";
+import type { Amenity } from "@/data/listings";
+import type { ElementType } from "react";
+
+export const amenityIcons: Record<Amenity, ElementType> = {
+  "Live Music":      RiMusic2Line,
+  "WiFi":            RiWifiLine,
+  "AC":              RiWindyLine,
+  "Parking":         RiParkingLine,
+  "Pool":            RiDropLine,
+  "Cafe":            RiCupLine,
+  "Bar":             RiGobletLine,
+  "Restaurant":      RiRestaurantLine,
+  "Gym":             RiHeartPulseLine,
+  "Spa":             RiLeafLine,
+  "Garden":          RiPlantLine,
+  "Rooftop":         RiBuildingLine,
+  "Outdoor Seating": RiSunLine,
+  "Private Rooms":   RiDoorLine,
+  "Catering":        RiRestaurantLine,
+  "Sound System":    RiVolumeUpLine,
+  "Projector":       RiSlideshowLine,
+  "Stage":           RiMicLine,
+};
