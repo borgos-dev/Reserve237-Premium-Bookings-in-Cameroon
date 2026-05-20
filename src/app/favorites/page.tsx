@@ -24,10 +24,10 @@ export default function FavoritesPage() {
       <NewNavbar />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-24">
-        {/* Back */}
+        {/* Back — mobile only */}
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors mb-10"
+          className="md:hidden inline-flex items-center gap-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors mb-10"
         >
           <RiArrowLeftLine className="w-4 h-4" />
           Back to listings

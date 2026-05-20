@@ -7,6 +7,7 @@ import {
   RiDashboardLine,
   RiGlobalLine,
   RiHome4Line,
+  RiMailLine,
   RiMenuLine,
   RiStore2Line,
 } from "react-icons/ri";
@@ -83,6 +84,9 @@ export function NewNavbar() {
             </Link>
             <Link href="/business" className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors text-sm">
               For Business
+            </Link>
+            <Link href="/contact" className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors text-sm">
+              Contact
             </Link>
           </div>
 
@@ -199,6 +203,14 @@ export function NewNavbar() {
               >
                 <RiStore2Line className="w-5 h-5 text-[var(--primary)]" />
                 For Business
+              </Link>
+              <Link
+                href="/contact"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 rounded-2xl px-4 py-3 text-[var(--foreground)] hover:bg-[var(--secondary)]"
+              >
+                <RiMailLine className="w-5 h-5 text-[var(--primary)]" />
+                Contact
               </Link>
               <Link
                 href="/favorites"
