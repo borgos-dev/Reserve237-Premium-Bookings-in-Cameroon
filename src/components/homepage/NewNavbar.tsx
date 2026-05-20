@@ -62,7 +62,7 @@ export function NewNavbar() {
             <motion.img
               src="/Reserve237-logo.png"
               alt="Reserve237"
-              className="h-20 sm:h-24 md:h-28 w-auto max-w-[150px] sm:max-w-[190px] md:max-w-[220px] object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
+              className="h-20 sm:h-24 md:h-28 w-auto max-w-[150px] sm:max-w-[190px] md:max-w-[220px] object-contain drop-shadow-[0_2px_8px_rgba(31,42,42,0.3)]"
               initial={{ opacity: 0, scale: 0.5, rotate: -12, y: -8 }}
               animate={{ opacity: 1, scale: 1, rotate: 0, y: 0 }}
               transition={{
@@ -105,12 +105,12 @@ export function NewNavbar() {
               onClick={() => setMobileMenuOpen(false)}
             >
               {hasFavorites ? (
-                <FaHeart className="w-5 h-5 text-red-500" />
+                <FaHeart className="w-5 h-5 text-[var(--primary)]" />
               ) : (
                 <FaHeart className="w-5 h-5 text-[var(--muted-foreground)]" />
               )}
               {hasFavorites && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-[var(--primary)] text-[var(--primary-foreground)] text-[10px] font-bold rounded-full flex items-center justify-center px-1">
                   {favorites.length > 9 ? "9+" : favorites.length}
                 </span>
               )}
@@ -173,7 +173,7 @@ export function NewNavbar() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-40 bg-[#1F2A2A]/50 backdrop-blur-sm md:hidden"
           onClick={() => setMobileMenuOpen(false)}
         >
           <motion.div
@@ -205,10 +205,10 @@ export function NewNavbar() {
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex items-center gap-3 rounded-2xl px-4 py-3 text-[var(--foreground)] hover:bg-[var(--secondary)]"
               >
-                <FaHeart className={hasFavorites ? "w-5 h-5 text-red-500" : "w-5 h-5 text-[var(--primary)]"} />
+                <FaHeart className={hasFavorites ? "w-5 h-5 text-[var(--primary)]" : "w-5 h-5 text-[var(--muted-foreground)]"} />
                 Favorites
                 {hasFavorites && (
-                  <span className="ml-auto rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white">
+                  <span className="ml-auto rounded-full bg-[var(--primary)] px-2 py-0.5 text-xs font-bold text-[var(--primary-foreground)]">
                     {favorites.length}
                   </span>
                 )}

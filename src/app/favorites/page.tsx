@@ -15,8 +15,6 @@ import { generateSlug } from "@/lib/utils";
 import { getCategoryBadgeClass } from "@/lib/categoryColors";
 import { NewNavbar } from "@/components/homepage/NewNavbar";
 import { NewFooter } from "@/components/homepage/NewFooter";
-import { MobileBottomNav } from "@/components/homepage/MobileBottomNav";
-import { ColorSchemeSwitcher } from "@/components/homepage/ColorSchemeSwitcher";
 
 export default function FavoritesPage() {
   const { favorites, toggleFavorite, clearAll } = useFavoritesStore();
@@ -24,7 +22,6 @@ export default function FavoritesPage() {
   return (
     <main className="bg-[var(--background)] text-[var(--foreground)] min-h-screen">
       <NewNavbar />
-      <ColorSchemeSwitcher />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-24">
         {/* Back */}
@@ -97,7 +94,7 @@ export default function FavoritesPage() {
                       unoptimized={listing.image.startsWith("http")}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#1F2A2A]/40 to-transparent" />
                   </Link>
 
                   {/* Content */}
@@ -110,7 +107,7 @@ export default function FavoritesPage() {
                       </Link>
                       <button
                         onClick={() => toggleFavorite(listing)}
-                        className="flex-none p-1.5 rounded-xl hover:bg-red-500/10 text-[var(--muted-foreground)] hover:text-red-500 transition-colors"
+                        className="flex-none p-1.5 rounded-xl hover:bg-[var(--destructive)]/10 text-[var(--muted-foreground)] hover:text-[var(--destructive)] transition-colors"
                         title="Remove from favorites"
                       >
                         <RiDeleteBinLine className="w-4 h-4" />
@@ -129,7 +126,7 @@ export default function FavoritesPage() {
                         {listing.category.replace(/-/g, " ")}
                       </span>
                       <div className="flex items-center gap-1 text-sm">
-                        <RiStarFill className="w-3.5 h-3.5 text-yellow-400" />
+                        <RiStarFill className="w-3.5 h-3.5 text-[#E8B923]" />
                         <span className="font-medium">{listing.rating}</span>
                       </div>
                     </div>
@@ -154,7 +151,6 @@ export default function FavoritesPage() {
       </div>
 
       <NewFooter />
-      <MobileBottomNav />
     </main>
   );
 }

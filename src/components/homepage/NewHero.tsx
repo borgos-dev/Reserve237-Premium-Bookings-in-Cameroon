@@ -8,7 +8,7 @@ export function NewHero() {
   return (
     <div className="relative min-h-[85vh] flex items-center justify-center overflow-hidden pt-24">
       {/* Gradient Base */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#121212] via-[#1a1a1a] to-[#0a0a0a]" />
+      <div className="absolute inset-0 bg-gradient-to-br from-[var(--surface-1)] via-[var(--surface-2)] to-[var(--surface-1)]" />
 
       {/* Pulsing Orbs */}
       <div className="absolute inset-0">

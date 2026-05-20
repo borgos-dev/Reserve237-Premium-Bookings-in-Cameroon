@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(node -e \"const p = require\\('c:/Users/User/projectlevel2/reserve237/package.json'\\); console.log\\(JSON.stringify\\(Object.keys\\(p.dependencies\\)\\)\\)\")"
+      "Bash(node -e \"const p = require\\('c:/Users/User/projectlevel2/reserve237/package.json'\\); console.log\\(JSON.stringify\\(Object.keys\\(p.dependencies\\)\\)\\)\")",
+      "PowerShell(npx tsc --noEmit 2>&1)"
     ]
   }
 }

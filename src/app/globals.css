@@ -2,25 +2,53 @@
 
 @layer base {
   :root {
-    /* Neo-Minimalist Default Theme */
-    --background: #121212;
-    --foreground: #f5f5f7;
-    --card: #1a1a1a;
-    --primary: #c19a6b;
-    --primary-foreground: #121212;
-    --secondary: #2a2a2a;
-    --muted: #1a1a1a;
-    --muted-foreground: #9ca3af;
-    --border: rgba(193, 154, 107, 0.15);
-    --input: rgba(193, 154, 107, 0.1);
-    --input-background: rgba(255, 255, 255, 0.05);
-    --glass-bg: rgba(26, 26, 26, 0.7);
-    --glass-border: rgba(193, 154, 107, 0.2);
-    --chart-1: #c19a6b;
-    --chart-2: #d4af77;
-    --chart-3: #8b7355;
-    --chart-4: #f5f5f7;
-    --chart-5: #9ca3af;
+    /* Reserve237 Design Tokens */
+
+    /* Surfaces — 3 tiers, page → section → card */
+    --surface-1: #f8f1ea;
+    --surface-2: #f2eadf;
+    --surface-3: #ede4d9;
+
+    /* Text — 3 tiers + inverse */
+    --text-primary: #1f2a2a;
+    --text-secondary: #5a6868;
+    --text-tertiary: #8a8580;
+    --text-inverse: #f8f1ea;
+
+    /* Brand */
+    --primary: #13695a;
+    --primary-hover: #0a5c4a;
+    --primary-foreground: #f8f1ea;
+    --accent: #e8b923;
+
+    /* Functional */
+    --destructive: #b8442e;
+    --destructive-foreground: #f8f1ea;
+
+    /* Legacy aliases (kept for backward compatibility) */
+    --background: var(--surface-1);
+    --foreground: var(--text-primary);
+    --card: var(--surface-3);
+    --secondary: var(--surface-2);
+    --muted: var(--surface-2);
+    --muted-foreground: var(--text-secondary);
+    --cta-hover: var(--primary-hover);
+
+    --border: rgba(19, 105, 90, 0.18);
+    --input: rgba(19, 105, 90, 0.1);
+    --input-background: rgba(31, 42, 42, 0.04);
+    --glass-bg: rgba(248, 241, 234, 0.82);
+    --glass-border: rgba(19, 105, 90, 0.22);
+
+    --chart-1: #13695a;
+    --chart-2: #e8b923;
+    --chart-3: #0a5c4a;
+    --chart-4: #1f2a2a;
+    --chart-5: #8a8580;
+
+    /* Card elevation shadows */
+    --shadow-card: 0 1px 2px rgba(31, 42, 42, 0.04), 0 8px 24px rgba(31, 42, 42, 0.05);
+    --shadow-card-hover: 0 2px 4px rgba(31, 42, 42, 0.05), 0 12px 32px rgba(31, 42, 42, 0.08);
 
     /* Border Radius System */
     --radius: 1.5rem;
@@ -96,20 +124,22 @@
   /* Card component */
   .card {
     @apply bg-[var(--card)] border border-[var(--border)] rounded-3xl p-6 transition-all;
+    box-shadow: var(--shadow-card);
   }
 
   .card:hover {
     border-color: var(--primary);
+    box-shadow: var(--shadow-card-hover);
   }
 
   /* Primary button */
   .btn-primary {
-    @apply px-6 py-2.5 bg-[var(--primary)] hover:bg-[#d4af77] text-[var(--primary-foreground)] rounded-2xl transition-all shadow-lg font-medium;
+    @apply px-6 py-2.5 bg-[var(--primary)] hover:bg-[#0a5c4a] text-[var(--primary-foreground)] rounded-2xl transition-all shadow-lg font-medium;
   }
 
   /* Secondary button */
   .btn-secondary {
-    @apply px-4 py-3 bg-[var(--secondary)] hover:bg-[#3a3a3a] text-[var(--foreground)] rounded-2xl border border-[var(--border)] transition-all;
+    @apply px-4 py-3 bg-[var(--secondary)] hover:bg-[#ddd3c5] text-[var(--foreground)] rounded-2xl border border-[var(--border)] transition-all;
   }
 
   /* Input field */
@@ -166,7 +196,7 @@
 
   /* Gradient text */
   .gradient-text {
-    background: linear-gradient(135deg, var(--primary), #d4af77);
+    background: linear-gradient(135deg, var(--primary), #e8b923);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -196,8 +226,8 @@ html {
 body {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(193, 154, 107, 0.12), transparent 34rem),
-    radial-gradient(circle at bottom right, rgba(96, 165, 250, 0.08), transparent 32rem),
+    radial-gradient(circle at top left, rgba(19, 105, 90, 0.12), transparent 34rem),
+    radial-gradient(circle at bottom right, rgba(232, 185, 35, 0.08), transparent 32rem),
     var(--background);
   color: var(--foreground);
   font-family: var(--font-inter), Arial, Helvetica, sans-serif;
@@ -210,9 +240,11 @@ textarea {
   font: inherit;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+@layer base {
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
 }
 
 .font-display {
@@ -229,19 +261,20 @@ a {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 2rem;
+  box-shadow: var(--shadow-card);
 }
 
 .light-theme {
-  --background: #f5f5f7;
-  --foreground: #171717;
-  --card: #ffffff;
-  --secondary: #ece8e2;
-  --muted: #ffffff;
-  --muted-foreground: #59606b;
-  --border: rgba(99, 74, 45, 0.16);
-  --input-background: rgba(18, 18, 18, 0.04);
-  --glass-bg: rgba(255, 255, 255, 0.78);
-  --glass-border: rgba(99, 74, 45, 0.16);
+  --surface-1: #f8f1ea;
+  --surface-2: #f2eadf;
+  --surface-3: #ede4d9;
+  --text-primary: #1f2a2a;
+  --text-secondary: #5a6868;
+  --text-tertiary: #8a8580;
+  --border: rgba(19, 105, 90, 0.18);
+  --input-background: rgba(31, 42, 42, 0.04);
+  --glass-bg: rgba(248, 241, 234, 0.82);
+  --glass-border: rgba(19, 105, 90, 0.22);
 }
 
 .scrollbar-hide::-webkit-scrollbar {

@@ -28,7 +28,7 @@ const features = [
 
 export function NewBusinessCTA() {
   return (
-    <section className="py-20 bg-gradient-to-b from-[#121212] via-[#0a0a0a] to-[#121212] relative overflow-hidden">
+    <section className="py-20 bg-gradient-to-b from-[var(--surface-1)] via-[var(--surface-2)] to-[var(--surface-1)] relative overflow-hidden">
       {/* Pulsing orbs */}
       <div className="absolute inset-0">
         <div className="absolute top-1/4 left-1/4 w-80 h-80 bg-[var(--primary)] rounded-full blur-[128px] opacity-10 animate-pulse" />
@@ -84,7 +84,7 @@ export function NewBusinessCTA() {
           transition={{ delay: 0.4, duration: 0.6 }}
           className="flex justify-center"
         >
-          <button className="px-10 py-4 bg-[var(--primary)] hover:bg-[#D4AF77] text-[var(--primary-foreground)] rounded-2xl shadow-2xl text-lg font-semibold transition-all">
+          <button className="px-10 py-4 bg-[var(--primary)] hover:bg-[#0A5C4A] text-[var(--primary-foreground)] rounded-2xl shadow-2xl text-lg font-semibold transition-all">
             Become a Partner
           </button>
         </motion.div>

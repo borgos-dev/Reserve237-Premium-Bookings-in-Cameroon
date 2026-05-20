@@ -47,7 +47,7 @@ export function PremiumListingCard({ listing }: PremiumListingCardProps) {
               unoptimized={listing.image.startsWith("http")}
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
             />
-            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-gradient-to-t from-black/80 via-black/20 to-transparent transition-opacity duration-300" />
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-gradient-to-t from-[#1F2A2A]/80 via-[#1F2A2A]/20 to-transparent transition-opacity duration-300" />
           </Link>
 
           {/* Verified Badge */}
@@ -59,8 +59,8 @@ export function PremiumListingCard({ listing }: PremiumListingCardProps) {
           )}
 
           {/* Rating Badge */}
-          <div className="absolute top-4 right-4 bg-black/60 backdrop-blur px-3 py-1.5 rounded-xl flex items-center gap-1 text-xs font-medium pointer-events-none">
-            <RiStarFill className="w-3.5 h-3.5 text-yellow-400" />
+          <div className="absolute top-4 right-4 bg-[#1F2A2A]/60 backdrop-blur px-3 py-1.5 rounded-xl flex items-center gap-1 text-xs font-medium text-[#F8F1EA] pointer-events-none">
+            <RiStarFill className="w-3.5 h-3.5 text-[#E8B923]" />
             {listing.rating} ({listing.reviews})
           </div>
 
@@ -70,11 +70,11 @@ export function PremiumListingCard({ listing }: PremiumListingCardProps) {
               e.preventDefault();
               toggleFavorite(listing);
             }}
-            className="absolute top-[52px] right-4 w-9 h-9 rounded-full bg-black/60 backdrop-blur flex items-center justify-center hover:bg-black/80 transition-all"
+            className="absolute top-[52px] right-4 w-9 h-9 rounded-full bg-[#1F2A2A]/60 backdrop-blur flex items-center justify-center hover:bg-[#1F2A2A]/80 transition-all"
           >
             {favorite
-              ? <RiHeartFill className="w-4 h-4 text-red-500" />
-              : <RiHeartLine className="w-4 h-4 text-white" />
+              ? <RiHeartFill className="w-4 h-4 text-[var(--primary)]" />
+              : <RiHeartLine className="w-4 h-4 text-[#F8F1EA]" />
             }
           </button>
 

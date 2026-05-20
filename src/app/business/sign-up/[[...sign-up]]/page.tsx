@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSignUp, useClerk } from "@clerk/nextjs";
+import { AuthHeader } from "@/components/auth/AuthHeader";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -156,13 +157,7 @@ export default function BusinessSignUpPage() {
 
   return (
     <main className="min-h-screen bg-[var(--background)] flex flex-col">
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-6 py-5 border-b border-[var(--border)]">
-        <Link href="/" className="flex items-center">
-          <img src="/Reserve237-logo.png" alt="Reserve237" className="h-20 sm:h-24 w-auto max-w-[190px] object-contain" />
-        </Link>
-        
-      </div>
+      <AuthHeader />
 
       <div className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-lg">
@@ -200,7 +195,7 @@ export default function BusinessSignUpPage() {
 
               {/* Business Name */}
               <div>
-                <label className="block text-sm font-medium mb-1.5">Business Name <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium mb-1.5">Business Name <span className="text-[var(--destructive)]">*</span></label>
                 <div className="relative">
                   <RiBuilding2Line className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
                   <input
@@ -216,23 +211,23 @@ export default function BusinessSignUpPage() {
 
               {/* Category */}
               <div>
-                <label className="block text-sm font-medium mb-1.5">Business Category <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium mb-1.5">Business Category <span className="text-[var(--destructive)]">*</span></label>
                 <select
                   required
                   className="input-field w-full appearance-none"
                   value={business.category}
                   onChange={(e) => setBusiness({ ...business, category: e.target.value })}
                 >
-                  <option value="" style={{ color: "#111827", backgroundColor: "#fff" }}>Select a category</option>
+                  <option value="" style={{ color: "#1F2A2A", backgroundColor: "#F8F1EA" }}>Select a category</option>
                   {categories.map(([value, label]) => (
-                    <option key={value} value={value} style={{ color: "#111827", backgroundColor: "#fff" }}>{label}</option>
+                    <option key={value} value={value} style={{ color: "#1F2A2A", backgroundColor: "#F8F1EA" }}>{label}</option>
                   ))}
                 </select>
               </div>
 
               {/* City */}
               <div>
-                <label className="block text-sm font-medium mb-1.5">City / Location <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium mb-1.5">City / Location <span className="text-[var(--destructive)]">*</span></label>
                 <div className="relative">
                   <RiMapPinLine className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
                   <select
@@ -241,9 +236,9 @@ export default function BusinessSignUpPage() {
                     value={business.city}
                     onChange={(e) => setBusiness({ ...business, city: e.target.value })}
                   >
-                    <option value="" style={{ color: "#111827", backgroundColor: "#fff" }}>Select your city</option>
+                    <option value="" style={{ color: "#1F2A2A", backgroundColor: "#F8F1EA" }}>Select your city</option>
                     {["Yaounde", "Douala", "Limbe", "Bafoussam", "Bamenda"].map((c) => (
-                      <option key={c} value={c} style={{ color: "#111827", backgroundColor: "#fff" }}>{c}</option>
+                      <option key={c} value={c} style={{ color: "#1F2A2A", backgroundColor: "#F8F1EA" }}>{c}</option>
                     ))}
                   </select>
                 </div>
@@ -263,7 +258,7 @@ export default function BusinessSignUpPage() {
               </div>
 
               {error && (
-                <p className="text-sm text-red-500 bg-red-500/10 px-4 py-2 rounded-xl">{error}</p>
+                <p className="text-sm text-[var(--destructive)] bg-[var(--destructive)]/10 px-4 py-2 rounded-xl">{error}</p>
               )}
 
               <button type="submit" className="btn-primary w-full py-3 flex items-center justify-center gap-2">
@@ -322,7 +317,7 @@ export default function BusinessSignUpPage() {
               <div id="clerk-captcha" />
 
               {error && (
-                <p className="text-sm text-red-500 bg-red-500/10 px-4 py-2 rounded-xl">{error}</p>
+                <p className="text-sm text-[var(--destructive)] bg-[var(--destructive)]/10 px-4 py-2 rounded-xl">{error}</p>
               )}
 
               <div className="flex gap-3">
@@ -366,7 +361,7 @@ export default function BusinessSignUpPage() {
                 onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, ""))}
               />
               {error && (
-                <p className="text-sm text-red-500 bg-red-500/10 px-4 py-2 rounded-xl">{error}</p>
+                <p className="text-sm text-[var(--destructive)] bg-[var(--destructive)]/10 px-4 py-2 rounded-xl">{error}</p>
               )}
               <button
                 type="submit"

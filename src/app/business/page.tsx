@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { NewNavbar } from "@/components/homepage/NewNavbar";
 import { NewFooter } from "@/components/homepage/NewFooter";
-import { MobileBottomNav } from "@/components/homepage/MobileBottomNav";
-import { ColorSchemeSwitcher } from "@/components/homepage/ColorSchemeSwitcher";
 import {
   RiShieldLine,
   RiFlashlightLine,
@@ -57,11 +55,10 @@ export default function BusinessPage() {
   return (
     <main className="bg-[var(--background)] text-[var(--foreground)] min-h-screen">
       <NewNavbar />
-      <ColorSchemeSwitcher />
 
       {/* Hero */}
       <section className="relative min-h-[75vh] flex items-center justify-center overflow-hidden pt-24">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#121212] via-[#1a1a1a] to-[#0a0a0a]" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[var(--surface-1)] via-[var(--surface-2)] to-[var(--surface-1)]" />
         <div className="absolute top-20 left-10 w-96 h-96 bg-[var(--primary)] rounded-full blur-[128px] opacity-10 animate-pulse" />
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-[var(--primary)] rounded-full blur-[128px] opacity-10 animate-pulse" style={{ animationDelay: "1s" }} />
 
@@ -135,7 +132,7 @@ export default function BusinessPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-20 bg-gradient-to-b from-[var(--background)] to-[#0a0a0a]">
+      <section className="py-20 bg-gradient-to-b from-[var(--surface-1)] to-[var(--surface-2)]">
         <div className="max-w-2xl mx-auto px-4 text-center">
           <h2 className="text-4xl font-bold mb-4">Ready to Get Started?</h2>
           <p className="text-[var(--muted-foreground)] mb-8">
@@ -152,7 +149,6 @@ export default function BusinessPage() {
       </section>
 
       <NewFooter />
-      <MobileBottomNav />
     </main>
   );
 }

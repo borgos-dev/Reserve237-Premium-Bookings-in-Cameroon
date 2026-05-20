@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useEffect, useCallback } from "react";
+import { use, useState, useEffect } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -21,20 +21,63 @@ import {
   RiNavigationLine,
   RiCloseLine,
   RiImageLine,
+  RiDoubleQuotesL,
+  RiChat3Line,
 } from "react-icons/ri";
 import { allListings } from "@/data/listings";
 import { generateSlug } from "@/lib/utils";
-import { getCategoryBadgeClass, categoryColors } from "@/lib/categoryColors";
+import { getCategoryBadgeClass } from "@/lib/categoryColors";
 import { amenityIcons } from "@/lib/amenityIcons";
 import { useFavoritesStore } from "@/stores";
 import { NewNavbar } from "@/components/homepage/NewNavbar";
 import { NewFooter } from "@/components/homepage/NewFooter";
-import { MobileBottomNav } from "@/components/homepage/MobileBottomNav";
-import { ColorSchemeSwitcher } from "@/components/homepage/ColorSchemeSwitcher";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
+
+const FEATURED_REVIEWS = [
+  {
+    name: "Humphery",
+    quote:
+      "Service was impeccable from the moment we walked in. The attention to detail here separates Reserve237 partners from the rest.",
+  },
+  {
+    name: "Mr Wansi",
+    quote:
+      "Booked for an anniversary dinner and everything exceeded what was promised. The staff remembered our names by the second visit.",
+  },
+  {
+    name: "Mr Modest Wilton",
+    quote:
+      "Quietly one of the most refined experiences in town. No frills, no fuss — just done right.",
+  },
+  {
+    name: "Mr Abena",
+    quote:
+      "The ambience does the heavy lifting here. Soft lighting, the right music, and a team that knows when to disappear.",
+  },
+  {
+    name: "Arami",
+    quote:
+      "I've been three times this month and each visit feels considered. That's rare around here, honestly.",
+  },
+  {
+    name: "Simo Morelle",
+    quote:
+      "Pricing felt fair for the quality you get. Plenty of cheaper options out there but none come close on the details.",
+  },
+  {
+    name: "Jek",
+    quote:
+      "Took a group of friends for a Saturday night and the place delivered. Clean, organised, premium without being pretentious.",
+  },
+  {
+    name: "Borgos",
+    quote:
+      "What sold me was how easy the booking was. Showed up, table ready, drinks already on the way. That's the whole pitch.",
+  },
+];
 
 export default function ListingDetailPage({ params }: PageProps) {
   const { slug } = use(params);
@@ -45,19 +88,12 @@ export default function ListingDetailPage({ params }: PageProps) {
 
   const { isFavorite, toggleFavorite } = useFavoritesStore();
   const [mounted, setMounted] = useState(false);
-  const [activePhoto, setActivePhoto] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
   useEffect(() => { setMounted(true); }, []);
 
   const favorite = mounted && isFavorite(listing.id);
-  const colors = categoryColors[listing.category];
-
-  const prevPhoto = useCallback(() =>
-    setActivePhoto((p) => (p - 1 + photos.length) % photos.length), [photos.length]);
-  const nextPhoto = useCallback(() =>
-    setActivePhoto((p) => (p + 1) % photos.length), [photos.length]);
 
   const openLightbox = (i: number) => { setLightboxIndex(i); setLightboxOpen(true); };
   const closeLightbox = () => setLightboxOpen(false);
@@ -75,36 +111,34 @@ export default function ListingDetailPage({ params }: PageProps) {
     return () => window.removeEventListener("keydown", handler);
   }, [lightboxOpen]);
 
-  const priceRangeLevel =
-    { budget: 1, "mid-range": 2, premium: 3, luxury: 4 }[listing.priceRange ?? "mid-range"] ?? 2;
-  const ratingPercent = (listing.rating / 5) * 100;
-  const capacityPercent = listing.capacity ? Math.min((listing.capacity / 600) * 100, 100) : 0;
-  const popularityPercent = Math.min((listing.reviews / 400) * 100, 100);
+  const priceSymbol =
+    ({ budget: "$", "mid-range": "$$", premium: "$$$", luxury: "$$$$" }[listing.priceRange ?? "mid-range"]) ?? "$$";
+
+  const featuredReview = FEATURED_REVIEWS[listing.id % FEATURED_REVIEWS.length];
 
   return (
     <main className="bg-[var(--background)] text-[var(--foreground)] min-h-screen">
       <NewNavbar />
-      <ColorSchemeSwitcher />
 
       {/* ── Lightbox ── */}
       <AnimatePresence>
         {lightboxOpen && (
           <motion.div
-            className="fixed inset-0 z-50 bg-black/95 flex flex-col"
+            className="fixed inset-0 z-50 bg-[#1F2A2A]/95 flex flex-col"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
             {/* Lightbox header */}
             <div className="flex items-center justify-between px-6 py-4 shrink-0">
-              <span className="text-white/60 text-sm">
+              <span className="text-[#F8F1EA]/60 text-sm">
                 {lightboxIndex + 1} / {photos.length}
               </span>
               <button
                 onClick={closeLightbox}
-                className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+                className="w-10 h-10 rounded-full bg-[#F8F1EA]/10 hover:bg-[#F8F1EA]/20 flex items-center justify-center transition-colors"
               >
-                <RiCloseLine className="w-5 h-5 text-white" />
+                <RiCloseLine className="w-5 h-5 text-[#F8F1EA]" />
               </button>
             </div>
 
@@ -112,9 +146,9 @@ export default function ListingDetailPage({ params }: PageProps) {
             <div className="flex-1 flex items-center justify-center relative px-16 min-h-0">
               <button
                 onClick={prevLightbox}
-                className="absolute left-4 w-12 h-12 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center transition-colors"
+                className="absolute left-4 w-12 h-12 rounded-full bg-[#F8F1EA]/10 hover:bg-[#F8F1EA]/25 flex items-center justify-center transition-colors"
               >
-                <RiArrowLeftSLine className="w-6 h-6 text-white" />
+                <RiArrowLeftSLine className="w-6 h-6 text-[#F8F1EA]" />
               </button>
               <motion.img
                 key={lightboxIndex}
@@ -128,9 +162,9 @@ export default function ListingDetailPage({ params }: PageProps) {
               />
               <button
                 onClick={nextLightbox}
-                className="absolute right-4 w-12 h-12 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center transition-colors"
+                className="absolute right-4 w-12 h-12 rounded-full bg-[#F8F1EA]/10 hover:bg-[#F8F1EA]/25 flex items-center justify-center transition-colors"
               >
-                <RiArrowRightSLine className="w-6 h-6 text-white" />
+                <RiArrowRightSLine className="w-6 h-6 text-[#F8F1EA]" />
               </button>
             </div>
 
@@ -141,7 +175,7 @@ export default function ListingDetailPage({ params }: PageProps) {
                   key={i}
                   onClick={() => setLightboxIndex(i)}
                   className={`relative shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${
-                    i === lightboxIndex ? "border-white scale-105" : "border-white/20 opacity-60 hover:opacity-90"
+                    i === lightboxIndex ? "border-[#F8F1EA] scale-105" : "border-[#F8F1EA]/20 opacity-60 hover:opacity-90"
                   }`}
                 >
                   <Image
@@ -197,7 +231,7 @@ export default function ListingDetailPage({ params }: PageProps) {
             )}
             <button
               onClick={(e) => { e.stopPropagation(); openLightbox(0); }}
-              className="absolute bottom-4 right-4 bg-white/95 hover:bg-white text-black px-3 py-1.5 rounded-xl flex items-center gap-2 text-xs font-semibold backdrop-blur-sm"
+              className="absolute bottom-4 right-4 bg-[#F8F1EA]/95 hover:bg-[#F8F1EA] text-[#1F2A2A] px-3 py-1.5 rounded-xl flex items-center gap-2 text-xs font-semibold backdrop-blur-sm"
             >
               <RiImageLine className="w-4 h-4" />
               {photos.length} photos
@@ -222,7 +256,7 @@ export default function ListingDetailPage({ params }: PageProps) {
                   unoptimized={photos[0].startsWith("http")}
                   className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
                 />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                <div className="absolute inset-0 bg-[#1F2A2A]/0 group-hover:bg-[#1F2A2A]/10 transition-colors" />
                 {listing.verified && (
                   <div className="absolute top-5 left-5 bg-[var(--primary)] text-[var(--primary-foreground)] px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-sm font-medium shadow-lg">
                     <RiShieldCheckLine className="w-4 h-4" />
@@ -245,7 +279,7 @@ export default function ListingDetailPage({ params }: PageProps) {
                     unoptimized={photos[1].startsWith("http")}
                     className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
                   />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                  <div className="absolute inset-0 bg-[#1F2A2A]/0 group-hover:bg-[#1F2A2A]/10 transition-colors" />
                 </div>
               )}
 
@@ -263,7 +297,7 @@ export default function ListingDetailPage({ params }: PageProps) {
                     unoptimized={photos[2].startsWith("http")}
                     className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
                   />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                  <div className="absolute inset-0 bg-[#1F2A2A]/0 group-hover:bg-[#1F2A2A]/10 transition-colors" />
                 </div>
               )}
             </div>
@@ -290,13 +324,13 @@ export default function ListingDetailPage({ params }: PageProps) {
                         className="w-full h-full object-cover group-hover:scale-[1.06] transition-transform duration-500"
                       />
                       {isLastVisible ? (
-                        <div className="absolute inset-0 bg-black/55 group-hover:bg-black/70 transition-colors flex items-center justify-center">
-                          <span className="text-white text-base font-semibold">
+                        <div className="absolute inset-0 bg-[#1F2A2A]/55 group-hover:bg-[#1F2A2A]/70 transition-colors flex items-center justify-center">
+                          <span className="text-[#F8F1EA] text-base font-semibold">
                             +{extraCount} photos
                           </span>
                         </div>
                       ) : (
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                        <div className="absolute inset-0 bg-[#1F2A2A]/0 group-hover:bg-[#1F2A2A]/10 transition-colors" />
                       )}
                     </div>
                   );
@@ -324,7 +358,7 @@ export default function ListingDetailPage({ params }: PageProps) {
               <h1 className="text-4xl md:text-5xl font-bold mb-3 leading-tight">{listing.name}</h1>
               <div className="flex items-center gap-3 flex-wrap text-[var(--muted-foreground)]">
                 <div className="flex items-center gap-1.5">
-                  <RiStarFill className="w-5 h-5 text-yellow-400" />
+                  <RiStarFill className="w-5 h-5 text-[#E8B923]" />
                   <span className="font-semibold text-[var(--foreground)] text-lg">{listing.rating}</span>
                   <span>({listing.reviews} reviews)</span>
                 </div>
@@ -423,42 +457,72 @@ export default function ListingDetailPage({ params }: PageProps) {
               </div>
             )}
 
-            {/* Stats cards */}
-            <div>
-              <div className="mb-5">
-                <h2 className="text-2xl sm:text-3xl font-bold mb-2">At a Glance</h2>
-                <p className="text-sm text-[var(--muted-foreground)]">
-                  Quick signals to help you compare this listing with confidence.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4">
-              {[
-                { label: "Rating", value: `${listing.rating} / 5.0`, pct: ratingPercent, color: "bg-yellow-400" },
-                { label: "Popularity", value: `${listing.reviews} reviews`, pct: popularityPercent, color: "bg-[var(--primary)]" },
-                ...(listing.capacity ? [{ label: "Capacity", value: `${listing.capacity} guests`, pct: capacityPercent, color: "bg-green-400" }] : []),
-                ...(listing.priceRange ? [{ label: "Price Level", value: listing.priceRange, pct: (priceRangeLevel / 4) * 100, color: "bg-blue-400" }] : []),
-              ].map((stat, i) => (
-                <div key={stat.label} className="card p-5">
-                  <div className="flex items-start justify-between gap-3 mb-4">
-                    <div>
-                      <p className="text-[var(--muted-foreground)] text-xs font-medium uppercase tracking-wide mb-1">
-                        {stat.label}
-                      </p>
-                      <p className="font-semibold text-base capitalize">{stat.value}</p>
-                    </div>
-                    <span className="w-3 h-3 rounded-full bg-[var(--primary)]/40 mt-1" />
-                  </div>
-                  <div className="h-2 bg-[var(--secondary)] rounded-full overflow-hidden">
-                    <motion.div
-                      className={`h-full ${stat.color} rounded-full`}
-                      initial={{ width: 0 }}
-                      animate={{ width: `${stat.pct}%` }}
-                      transition={{ duration: 0.8, delay: 0.2 + i * 0.1 }}
-                    />
+            {/* Specs strip */}
+            <div className="card p-0 overflow-hidden">
+              <div className="flex flex-wrap divide-y sm:divide-y-0 sm:divide-x divide-[var(--border)]">
+                <div className="flex items-center gap-3 px-5 py-4 flex-1 min-w-[160px]">
+                  <RiStarFill className="w-5 h-5 text-[#E8B923] flex-none" />
+                  <div className="min-w-0">
+                    <p className="text-base font-semibold leading-tight">{listing.rating}</p>
+                    <p className="text-[11px] uppercase tracking-wide text-[var(--muted-foreground)] mt-0.5">Rating</p>
                   </div>
                 </div>
-              ))}
+
+                <div className="flex items-center gap-3 px-5 py-4 flex-1 min-w-[160px]">
+                  <RiChat3Line className="w-5 h-5 text-[var(--primary)] flex-none" />
+                  <div className="min-w-0">
+                    <p className="text-base font-semibold leading-tight">{listing.reviews}</p>
+                    <p className="text-[11px] uppercase tracking-wide text-[var(--muted-foreground)] mt-0.5">Reviews</p>
+                  </div>
+                </div>
+
+                {listing.capacity && (
+                  <div className="flex items-center gap-3 px-5 py-4 flex-1 min-w-[160px]">
+                    <RiTeamLine className="w-5 h-5 text-[var(--primary)] flex-none" />
+                    <div className="min-w-0">
+                      <p className="text-base font-semibold leading-tight">Up to {listing.capacity}</p>
+                      <p className="text-[11px] uppercase tracking-wide text-[var(--muted-foreground)] mt-0.5">Guests</p>
+                    </div>
+                  </div>
+                )}
+
+                {listing.priceRange && (
+                  <div className="flex items-center gap-3 px-5 py-4 flex-1 min-w-[160px]">
+                    <span className="w-5 text-center text-base font-bold text-[var(--primary)] flex-none tabular-nums">{priceSymbol}</span>
+                    <div className="min-w-0">
+                      <p className="text-base font-semibold leading-tight capitalize">{listing.priceRange}</p>
+                      <p className="text-[11px] uppercase tracking-wide text-[var(--muted-foreground)] mt-0.5">Price Level</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Featured review */}
+            <div className="card relative">
+              <RiDoubleQuotesL className="absolute top-5 right-5 w-10 h-10 text-[var(--primary)]/10" aria-hidden />
+              <div className="flex items-center gap-1 mb-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <RiStarFill
+                    key={i}
+                    className={`w-4 h-4 ${i < Math.round(listing.rating) ? "text-[#E8B923]" : "text-[var(--muted-foreground)]/30"}`}
+                  />
+                ))}
+              </div>
+              <p className="font-display text-lg sm:text-xl leading-snug mb-4 max-w-prose">
+                &ldquo;{featuredReview.quote}&rdquo;
+              </p>
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <p className="text-sm text-[var(--muted-foreground)]">
+                  &mdash; {featuredReview.name}
+                </p>
+                <a
+                  href="#reviews"
+                  className="text-sm font-medium text-[var(--primary)] hover:text-[var(--primary-hover)] transition-colors inline-flex items-center gap-1"
+                >
+                  Read all {listing.reviews} reviews
+                  <RiArrowRightLine className="w-4 h-4" />
+                </a>
               </div>
             </div>
           </motion.div>
@@ -483,22 +547,25 @@ export default function ListingDetailPage({ params }: PageProps) {
 
                 {/* Rating summary */}
                 <div className="flex items-center gap-2 py-3 border-y border-[var(--border)]">
-                  <RiStarFill className="w-5 h-5 text-yellow-400 shrink-0" />
+                  <RiStarFill className="w-5 h-5 text-[#E8B923] shrink-0" />
                   <span className="font-bold">{listing.rating}</span>
                   <span className="text-[var(--muted-foreground)] text-sm">· {listing.reviews} reviews</span>
                 </div>
 
                 {/* Book CTA */}
-                <button className="btn-primary w-full py-4 text-base font-semibold">
+                <Link
+                  href={`/listing/${slug}/book`}
+                  className="btn-primary w-full py-4 text-base font-semibold text-center block"
+                >
                   Book Now
-                </button>
+                </Link>
 
                 {/* Favorite */}
                 <button
                   onClick={() => toggleFavorite(listing)}
                   className={`w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-medium transition-all ${
                     favorite
-                      ? "bg-red-500/10 text-red-500 border border-red-500/30 hover:bg-red-500/20"
+                      ? "bg-[var(--primary)]/10 text-[var(--primary)] border border-[var(--primary)]/30 hover:bg-[var(--primary)]/20"
                       : "btn-secondary"
                   }`}
                 >
@@ -538,7 +605,6 @@ export default function ListingDetailPage({ params }: PageProps) {
       </div>
 
       <NewFooter />
-      <MobileBottomNav />
     </main>
   );
 }

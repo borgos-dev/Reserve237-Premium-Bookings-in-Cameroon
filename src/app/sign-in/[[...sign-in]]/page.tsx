@@ -1,20 +1,11 @@
 import { SignIn } from "@clerk/nextjs";
+import { AuthHeader } from "@/components/auth/AuthHeader";
 import Link from "next/link";
 
 export default function SignInPage() {
   return (
     <main className="min-h-screen bg-[var(--background)] flex flex-col">
-      <div className="flex items-center justify-between px-6 py-5 border-b border-[var(--border)]">
-        <Link href="/" className="flex items-center">
-          <img src="/Reserve237-logo.png" alt="Reserve237" className="h-20 sm:h-24 w-auto max-w-[190px] object-contain" />
-        </Link>
-        <p className="text-sm text-[var(--muted-foreground)]">
-          No account?{" "}
-          <Link href="/sign-up" className="text-[var(--primary)] hover:underline font-medium">
-            Sign up
-          </Link>
-        </p>
-      </div>
+      <AuthHeader />
 
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-16 gap-8">
         <div className="text-center">

@@ -5,7 +5,7 @@ import { useCategoryStore } from "@/stores";
 import { RiMapPinLine, RiCalendarLine, RiTimeLine, RiTeamLine, RiBuildingLine } from "react-icons/ri";
 import { motion, AnimatePresence } from "motion/react";
 
-const optionStyle = { color: "#111827", backgroundColor: "#ffffff" };
+const optionStyle = { color: "#1F2A2A", backgroundColor: "#F8F1EA" };
 
 export function AdaptiveSearch() {
   const { selectedCategory } = useCategoryStore();

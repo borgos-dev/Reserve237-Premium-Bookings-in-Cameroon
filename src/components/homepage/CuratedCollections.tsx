@@ -6,7 +6,7 @@ import { collections } from "@/data/listings";
 
 export function CuratedCollections() {
   return (
-    <section className="py-20 bg-gradient-to-b from-[#0a0a0a] to-[#121212]">
+    <section className="py-20 bg-gradient-to-b from-[var(--surface-2)] to-[var(--surface-1)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

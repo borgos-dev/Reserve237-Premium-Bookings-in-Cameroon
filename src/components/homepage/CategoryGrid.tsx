@@ -6,12 +6,12 @@ import { useBrowseStore } from "@/stores";
 import type { Category } from "@/data/listings";
 
 const categories: { icon: React.ElementType; label: string; color: string; filter: Category }[] = [
-  { icon: RiRestaurantLine, label: "Restaurants",     color: "from-amber-500 to-orange-600",  filter: "restaurant"     },
-  { icon: RiMusic2Line,     label: "Nightclubs",      color: "from-purple-500 to-pink-600",   filter: "nightclub"      },
-  { icon: RiGobletLine,     label: "Lounges",         color: "from-rose-500 to-red-600",      filter: "lounge"         },
-  { icon: RiHome4Line,      label: "Guest Houses",    color: "from-blue-500 to-cyan-600",     filter: "guesthouse"     },
-  { icon: RiTeamLine,       label: "Wedding Halls",   color: "from-green-500 to-emerald-600", filter: "wedding-hall"   },
-  { icon: RiBuildingLine,   label: "Corporate Spaces",color: "from-indigo-500 to-violet-600", filter: "corporate-space"},
+  { icon: RiRestaurantLine, label: "Restaurants",     color: "from-[#E8B923] to-[#13695A]", filter: "restaurant"     },
+  { icon: RiMusic2Line,     label: "Nightclubs",      color: "from-[#13695A] to-[#0A5C4A]", filter: "nightclub"      },
+  { icon: RiGobletLine,     label: "Lounges",         color: "from-[#E8B923] to-[#13695A]", filter: "lounge"         },
+  { icon: RiHome4Line,      label: "Guest Houses",    color: "from-[#13695A] to-[#0A5C4A]", filter: "guesthouse"     },
+  { icon: RiTeamLine,       label: "Wedding Halls",   color: "from-[#E8B923] to-[#13695A]", filter: "wedding-hall"   },
+  { icon: RiBuildingLine,   label: "Corporate Spaces",color: "from-[#13695A] to-[#0A5C4A]", filter: "corporate-space"},
 ];
 
 export function CategoryGrid() {
@@ -25,7 +25,7 @@ export function CategoryGrid() {
   }
 
   return (
-    <section className="py-20 bg-gradient-to-b from-[#121212] to-[#0a0a0a]">
+    <section className="py-20 bg-gradient-to-b from-[var(--surface-1)] to-[var(--surface-2)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -57,7 +57,7 @@ export function CategoryGrid() {
                 <div
                   className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${category.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}
                 >
-                  <Icon className="w-8 h-8 text-white" />
+                  <Icon className="w-8 h-8 text-[#F8F1EA]" />
                 </div>
                 <h3 className="text-xl font-semibold">{category.label}</h3>
               </motion.button>
