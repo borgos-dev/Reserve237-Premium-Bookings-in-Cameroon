@@ -153,7 +153,7 @@ export default function MerchantDashboard() {
           <div className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-[#1F2A2A]/5 cursor-pointer transition-colors">
             <div className="w-9 h-9 rounded-full bg-[#E8B923] flex items-center justify-center text-[#1F2A2A] text-xs font-bold shrink-0">PT</div>
             <div className="flex-1 min-w-0">
-              <p className="text-[#1F2A2A] text-xs font-semibold truncate">Papa Tala</p>
+              <p className="text-[#1F2A2A] text-xs font-semibold truncate">Akiy Ngoh</p>
               <p className="text-[#E8B923] text-[10px]">Pro Partner</p>
             </div>
             <RiLogoutBoxRLine size={15} className="text-[#1F2A2A]/30 hover:text-[#1F2A2A]/80" />
@@ -175,7 +175,7 @@ export default function MerchantDashboard() {
             </button>
             <div className="min-w-0">
               <h1 style={{ fontFamily:"'Playfair Display', serif" }} className="text-[#1F2A2A] text-base sm:text-lg md:text-xl font-bold truncate">
-                Good morning, Papa Tala
+                Good morning, Akiy Ngoh
               </h1>
               <p className="text-[#1F2A2A]/55 text-[10px] sm:text-xs mt-0.5 truncate">Saturday, 17 May 2026 · Bonapriso, Douala</p>
             </div>
