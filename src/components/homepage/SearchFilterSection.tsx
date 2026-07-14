@@ -2,37 +2,39 @@
 
 import { useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { allListings } from "@/data/listings";
-import type { Category } from "@/data/listings";
 import { PremiumListingCard } from "./PremiumListingCard";
-import { categoryColors, categoryIcons, categoryLabels } from "@/lib/categoryColors";
+import { categoryColors, categoryIcons, categoryLabels, ALL_MAIN_CATEGORIES } from "@/lib/categoryColors";
 import { useBrowseStore } from "@/stores";
 import { RiAppsLine, RiSearchLine, RiCloseLine } from "react-icons/ri";
+import type { PublicListing } from "@/types/listing";
+import { useLanguage } from "@/contexts/LanguageContext";
 
-const uniqueCategories = [...new Set(allListings.map((l) => l.category))];
+interface SearchFilterSectionProps {
+  listings: PublicListing[];
+}
 
-export function SearchFilterSection() {
+export function SearchFilterSection({ listings }: SearchFilterSectionProps) {
   const { browseFilter, setBrowseFilter, searchQuery, setSearchQuery } = useBrowseStore();
-  const activeCategory = browseFilter;
-  const query = searchQuery;
+  const { t } = useLanguage();
 
-  const isFiltering = activeCategory !== "all" || query.trim() !== "";
+  const isFiltering = browseFilter !== "all" || searchQuery.trim() !== "";
 
   const filtered = useMemo(() => {
     if (!isFiltering) return [];
-    const q = query.toLowerCase();
-    return allListings.filter((listing) => {
+    const q = searchQuery.toLowerCase().trim();
+    return listings.filter((listing) => {
       const matchesQuery =
         q === "" ||
         listing.name.toLowerCase().includes(q) ||
-        listing.description?.toLowerCase().includes(q) ||
         listing.location.toLowerCase().includes(q) ||
-        listing.tags.some((tag) => tag.toLowerCase().includes(q));
+        listing.city.toLowerCase().includes(q) ||
+        (listing.neighborhood?.toLowerCase().includes(q) ?? false) ||
+        listing.amenities.some((a) => a.toLowerCase().includes(q));
       const matchesCategory =
-        activeCategory === "all" || listing.category === activeCategory;
+        browseFilter === "all" || listing.mainCategory === browseFilter;
       return matchesQuery && matchesCategory;
     });
-  }, [query, activeCategory, isFiltering]);
+  }, [searchQuery, browseFilter, isFiltering, listings]);
 
   return (
     <section className="py-12 bg-[var(--background)]" id="browse">
@@ -43,12 +45,12 @@ export function SearchFilterSection() {
           <RiSearchLine className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--muted-foreground)] pointer-events-none" />
           <input
             type="text"
-            placeholder="Search listings..."
+            placeholder={t("search_placeholder")}
             className="input-field pl-12 pr-10 w-full py-4 text-base"
-            value={query}
+            value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-          {query && (
+          {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
               className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
@@ -60,17 +62,18 @@ export function SearchFilterSection() {
 
         {/* Category Filters */}
         <div className="mb-4 text-center sm:text-left">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-2">Browse by Category</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold mb-2">{t("browse_by_category")}</h2>
           <p className="text-sm text-[var(--muted-foreground)]">
-            Choose the type of experience you want to reserve.
+            {t("browse_subtitle")}
           </p>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+          {/* All */}
           <button
             onClick={() => setBrowseFilter("all")}
             className={`flex min-h-24 flex-col items-start justify-between rounded-3xl border p-4 text-left transition-all ${
-              activeCategory === "all"
+              browseFilter === "all"
                 ? "border-[var(--primary)] bg-[var(--primary)]/15 text-[var(--foreground)]"
                 : "border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:border-[var(--primary)] hover:text-[var(--foreground)]"
             }`}
@@ -78,12 +81,14 @@ export function SearchFilterSection() {
             <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--primary)]/10">
               <RiAppsLine className="h-5 w-5 text-[var(--primary)]" />
             </span>
-            <span className="text-sm font-semibold">All Listings</span>
+            <span className="text-sm font-semibold">{t("cat_all")}</span>
           </button>
-          {uniqueCategories.map((cat) => {
+
+          {/* 6 main categories */}
+          {ALL_MAIN_CATEGORIES.map((cat) => {
             const colors = categoryColors[cat];
             const Icon = categoryIcons[cat];
-            const isActive = activeCategory === cat;
+            const isActive = browseFilter === cat;
             return (
               <button
                 key={cat}
@@ -98,7 +103,7 @@ export function SearchFilterSection() {
                   {Icon && <Icon className={`h-5 w-5 ${colors.text}`} />}
                 </span>
                 <span className="text-sm font-semibold leading-tight">
-                  {categoryLabels[cat] ?? cat}
+                  {t(`cat_${cat.replace(/-/g, "_")}` as Parameters<typeof t>[0]) || categoryLabels[cat]}
                 </span>
               </button>
             );
@@ -116,13 +121,17 @@ export function SearchFilterSection() {
               transition={{ duration: 0.35 }}
               className="mt-10"
             >
-              {/* Count */}
               <p className="text-[var(--muted-foreground)] text-sm mb-8">
-                {filtered.length} listing{filtered.length !== 1 ? "s" : ""} found
-                {activeCategory !== "all" && (
-                  <span className="ml-2 capitalize">
-                    in <strong>{categoryLabels[activeCategory] ?? activeCategory}</strong>
+                {filtered.length} {filtered.length !== 1 ? t("listings_found_plural") : t("listings_found_singular")}
+                {browseFilter !== "all" && (
+                  <span className="ml-2">
+                    {t("in_category")} <strong className="capitalize">
+                      {t(`cat_${browseFilter.replace(/-/g, "_")}` as Parameters<typeof t>[0]) || categoryLabels[browseFilter]}
+                    </strong>
                   </span>
+                )}
+                {searchQuery && (
+                  <span className="ml-1">pour &ldquo;<strong>{searchQuery}</strong>&rdquo;</span>
                 )}
               </p>
 
@@ -142,13 +151,13 @@ export function SearchFilterSection() {
               ) : (
                 <div className="text-center py-24">
                   <p className="text-[var(--muted-foreground)] text-lg mb-6">
-                    No listings found{query ? ` for "${query}"` : ""}.
+                    {t("no_listings_found")}{searchQuery ? ` pour "${searchQuery}"` : ""}.
                   </p>
                   <button
                     onClick={() => { setSearchQuery(""); setBrowseFilter("all"); }}
                     className="btn-secondary"
                   >
-                    Clear Filters
+                    {t("clear_filters")}
                   </button>
                 </div>
               )}

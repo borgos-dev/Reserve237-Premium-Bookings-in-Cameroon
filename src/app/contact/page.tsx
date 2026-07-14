@@ -16,8 +16,10 @@ import {
 } from "react-icons/ri";
 import { NewNavbar } from "@/components/homepage/NewNavbar";
 import { NewFooter } from "@/components/homepage/NewFooter";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function ContactPage() {
+  const { t } = useLanguage();
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -39,7 +41,7 @@ export default function ContactPage() {
     const publicKey = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY;
 
     if (!serviceId || !templateId || !publicKey) {
-      setError("Contact form is not configured. Please try emailing us directly.");
+      setError(t("contact_not_configured"));
       setLoading(false);
       return;
     }
@@ -61,7 +63,7 @@ export default function ContactPage() {
       setSent(true);
       setForm({ name: "", email: "", phone: "", subject: "", message: "" });
     } catch (err: any) {
-      setError(err?.text ?? err?.message ?? "Could not send your message. Please try again.");
+      setError(err?.text ?? err?.message ?? t("contact_send_failed"));
     } finally {
       setLoading(false);
     }
@@ -79,9 +81,9 @@ export default function ContactPage() {
             transition={{ duration: 0.5 }}
             className="text-center mb-12"
           >
-            <h1 className="font-display text-4xl sm:text-5xl font-bold mb-3">Get in touch</h1>
+            <h1 className="font-display text-4xl sm:text-5xl font-bold mb-3">{t("contact_title")}</h1>
             <p className="text-[var(--muted-foreground)] text-base sm:text-lg max-w-xl mx-auto">
-              Questions, partnerships, or feedback — we&rsquo;d love to hear from you.
+              {t("contact_subtitle")}
             </p>
           </motion.div>
 
@@ -94,22 +96,22 @@ export default function ContactPage() {
             className="card space-y-5"
           >
             <div>
-              <h2 className="font-semibold text-lg mb-1">Send us a message</h2>
+              <h2 className="font-semibold text-lg mb-1">{t("contact_form_title")}</h2>
               <p className="text-sm text-[var(--muted-foreground)]">
-                We typically reply within one business day.
+                {t("contact_form_subtitle")}
               </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Name */}
               <div>
-                <label className="block text-sm font-medium mb-1.5">Name</label>
+                <label className="block text-sm font-medium mb-1.5">{t("contact_name")}</label>
                 <div className="relative">
                   <RiUser3Line className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
                   <input
                     type="text"
                     required
-                    placeholder="Your full name"
+                    placeholder={t("contact_name_ph")}
                     className="input-field pl-10 w-full"
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -119,13 +121,13 @@ export default function ContactPage() {
 
               {/* Email */}
               <div>
-                <label className="block text-sm font-medium mb-1.5">Email</label>
+                <label className="block text-sm font-medium mb-1.5">{t("email")}</label>
                 <div className="relative">
                   <RiMailLine className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
                   <input
                     type="email"
                     required
-                    placeholder="you@example.com"
+                    placeholder={t("contact_email_ph")}
                     className="input-field pl-10 w-full"
                     value={form.email}
                     onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -137,7 +139,7 @@ export default function ContactPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Phone */}
               <div>
-                <label className="block text-sm font-medium mb-1.5">Phone number</label>
+                <label className="block text-sm font-medium mb-1.5">{t("phone_number")}</label>
                 <div className="relative">
                   <RiPhoneLine className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
                   <input
@@ -153,11 +155,11 @@ export default function ContactPage() {
 
               {/* Subject */}
               <div>
-                <label className="block text-sm font-medium mb-1.5">Subject</label>
+                <label className="block text-sm font-medium mb-1.5">{t("contact_subject")}</label>
                 <input
                   type="text"
                   required
-                  placeholder="What's this about?"
+                  placeholder={t("contact_subject_ph")}
                   className="input-field w-full"
                   value={form.subject}
                   onChange={(e) => setForm({ ...form, subject: e.target.value })}
@@ -167,13 +169,13 @@ export default function ContactPage() {
 
             {/* Message */}
             <div>
-              <label className="block text-sm font-medium mb-1.5">Message</label>
+              <label className="block text-sm font-medium mb-1.5">{t("contact_message")}</label>
               <div className="relative">
                 <RiChat3Line className="absolute left-3 top-4 w-4 h-4 text-[var(--muted-foreground)]" />
                 <textarea
                   required
                   rows={6}
-                  placeholder="Tell us a bit more…"
+                  placeholder={t("contact_message_ph")}
                   className="input-field pl-10 w-full resize-none"
                   value={form.message}
                   onChange={(e) => setForm({ ...form, message: e.target.value })}
@@ -192,8 +194,8 @@ export default function ContactPage() {
               disabled={loading}
               className="btn-primary w-full py-3.5 flex items-center justify-center gap-2 disabled:opacity-60"
             >
-              {loading ? "Sending…" : (
-                <>Send message <RiArrowRightLine className="w-4 h-4" /></>
+              {loading ? t("contact_sending") : (
+                <>{t("contact_send")} <RiArrowRightLine className="w-4 h-4" /></>
               )}
             </button>
           </motion.form>
@@ -201,7 +203,7 @@ export default function ContactPage() {
           {/* Location footer */}
           <p className="text-center text-xs text-[var(--muted-foreground)] mt-8 inline-flex items-center justify-center gap-1.5 w-full">
             <RiMapPinLine className="w-3.5 h-3.5" />
-            Reserve237 · Available across Cameroon
+            {t("contact_location")}
           </p>
         </div>
       </main>
@@ -228,7 +230,7 @@ export default function ContactPage() {
               <button
                 onClick={() => setSent(false)}
                 className="absolute top-3 right-3 w-8 h-8 rounded-full hover:bg-[var(--surface-1)] flex items-center justify-center text-[var(--muted-foreground)]"
-                aria-label="Close"
+                aria-label={t("close_label")}
               >
                 <RiCloseLine className="w-4 h-4" />
               </button>
@@ -236,16 +238,16 @@ export default function ContactPage() {
               <div className="w-14 h-14 mx-auto rounded-full bg-[var(--primary)] flex items-center justify-center mb-4">
                 <RiCheckLine className="w-7 h-7 text-[var(--primary-foreground)]" />
               </div>
-              <h2 className="font-display text-2xl font-bold mb-2">Message sent</h2>
+              <h2 className="font-display text-2xl font-bold mb-2">{t("contact_sent_title")}</h2>
               <p className="text-[var(--muted-foreground)] text-sm mb-6">
-                Thanks for reaching out. Our team will get back to you within one business day.
+                {t("contact_sent_desc")}
               </p>
 
               <Link
                 href="/"
                 className="block w-full py-3 rounded-full bg-[#13695A] hover:bg-[#0A5C4A] text-[#F8F1EA] font-semibold transition-colors"
               >
-                Back to home
+                {t("back_to_home")}
               </Link>
             </motion.div>
           </motion.div>

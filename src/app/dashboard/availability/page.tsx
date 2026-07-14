@@ -1,24 +1,36 @@
-"use client";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
+import { getPartnerListings } from "@/actions/listings";
+import { getListingAvailability, getBookedDates } from "@/actions/availability";
+import { AvailabilityManager } from "@/components/dashboard/AvailabilityManager";
 
-import { motion } from "motion/react";
+export default async function AvailabilityPage() {
+  const { userId } = await auth();
+  if (!userId) redirect("/sign-in");
 
-export default function AvailabilityPage() {
+  const partnerListings = await getPartnerListings(userId);
+
+  // Pre-load availability for the first listing
+  const firstId = partnerListings[0]?.id ?? null;
+
+  const [blockedDates, bookedDates] = firstId
+    ? await Promise.all([
+        getListingAvailability(firstId),
+        getBookedDates(firstId),
+      ])
+    : [[], []];
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-    >
-      <h1 className="text-4xl font-bold mb-2">Availability</h1>
-      <p className="text-[var(--muted-foreground)] mb-8">
-        Manage your availability calendar
-      </p>
-
-      <div className="card p-12 text-center">
-        <p className="text-[var(--muted-foreground)]">
-          Availability calendar coming soon
-        </p>
-      </div>
-    </motion.div>
+    <AvailabilityManager
+      userId={userId}
+      listings={partnerListings.map((l) => ({
+        id: l.id,
+        name: l.name,
+        category: l.mainCategory,
+      }))}
+      initialListingId={firstId}
+      initialBlockedDates={blockedDates}
+      initialBookedDates={bookedDates}
+    />
   );
 }

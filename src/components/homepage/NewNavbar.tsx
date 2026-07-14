@@ -10,10 +10,12 @@ import {
   RiMailLine,
   RiMenuLine,
   RiStore2Line,
+  RiCalendarCheckLine,
 } from "react-icons/ri";
 import { FaHeart } from "react-icons/fa";
 import Link from "next/link";
 import { useFavoritesStore } from "@/stores";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Show,
   UserButton,
@@ -24,9 +26,9 @@ import {
 
 export function NewNavbar() {
   const [scrolled, setScrolled] = useState(false);
-  const [language, setLanguage] = useState<"EN" | "FR">("EN");
   const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { lang, setLang, t } = useLanguage();
   const { favorites } = useFavoritesStore();
   const { user } = useUser();
   const isPartner = user?.unsafeMetadata?.role === "partner";
@@ -53,7 +55,7 @@ export function NewNavbar() {
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.6 }}
-        className={`fixed top-0 left-0 right-0 h-24 sm:h-28 z-50 transition-all duration-300 ${
+        className={`fixed top-0 left-0 right-0 h-16 sm:h-24 md:h-28 z-50 transition-all duration-300 ${
           scrolled || mobileMenuOpen ? "bg-[var(--glass-bg)] backdrop-blur-xl" : "bg-transparent"
         }`}
       >
@@ -63,7 +65,7 @@ export function NewNavbar() {
             <motion.img
               src="/Reserve237-logo.png"
               alt="Reserve237"
-              className="h-20 sm:h-24 md:h-28 w-auto max-w-[150px] sm:max-w-[190px] md:max-w-[220px] object-contain drop-shadow-[0_2px_8px_rgba(31,42,42,0.3)]"
+              className="h-12 sm:h-20 md:h-24 w-auto max-w-[110px] sm:max-w-[170px] md:max-w-[200px] object-contain drop-shadow-[0_2px_8px_rgba(31,42,42,0.3)]"
               initial={{ opacity: 0, scale: 0.5, rotate: -12, y: -8 }}
               animate={{ opacity: 1, scale: 1, rotate: 0, y: 0 }}
               transition={{
@@ -80,13 +82,13 @@ export function NewNavbar() {
           {/* Desktop Nav Links */}
           <div className="hidden md:flex items-center gap-8">
             <Link href="/" className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors text-sm">
-              Home
+              {t("nav_home")}
             </Link>
             <Link href="/business" className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors text-sm">
-              For Business
+              {t("nav_for_business")}
             </Link>
             <Link href="/contact" className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors text-sm">
-              Contact
+              {t("nav_contact")}
             </Link>
           </div>
 
@@ -94,11 +96,11 @@ export function NewNavbar() {
           <div className="flex items-center gap-1.5 sm:gap-2">
             {/* Language Toggle */}
             <button
-              onClick={() => setLanguage(language === "EN" ? "FR" : "EN")}
+              onClick={() => setLang(lang === "fr" ? "en" : "fr")}
               className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-[var(--secondary)] transition-colors"
             >
               <RiGlobalLine className="w-4 h-4" />
-              <span className="text-sm font-medium">{language}</span>
+              <span className="text-sm font-medium">{lang === "fr" ? "FR" : "EN"}</span>
             </button>
 
             {/* Favorites */}
@@ -125,19 +127,19 @@ export function NewNavbar() {
               <Show when="signed-out">
                 <SignInButton mode="redirect" fallbackRedirectUrl="/">
                   <button className="text-sm font-medium px-3 py-2 rounded-lg hover:bg-[var(--secondary)] transition-colors text-[var(--foreground)]">
-                    Login
+                    {t("nav_login")}
                   </button>
                 </SignInButton>
                 <SignUpButton mode="redirect" fallbackRedirectUrl="/">
                   <button className="btn-primary text-sm">
-                    Sign Up
+                    {t("nav_signup")}
                   </button>
                 </SignUpButton>
               </Show>
             </div>
 
             <Show when="signed-in">
-              {isPartner && (
+              {isPartner ? (
                 <Link
                   href="/dashboard"
                   className="hidden sm:inline-flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-lg bg-[var(--primary)]/10 text-[var(--primary)] hover:bg-[var(--primary)]/20 transition-colors"
@@ -145,6 +147,14 @@ export function NewNavbar() {
                 >
                   <RiDashboardLine className="w-4 h-4" />
                   Dashboard
+                </Link>
+              ) : (
+                <Link
+                  href="/profile"
+                  className="hidden sm:inline-flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-lg hover:bg-[var(--secondary)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+                >
+                  <RiCalendarCheckLine className="w-4 h-4" />
+                  {t("nav_my_bookings")}
                 </Link>
               )}
               <UserButton
@@ -184,7 +194,7 @@ export function NewNavbar() {
             initial={{ y: -16, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.2 }}
-            className="mx-4 mt-28 rounded-3xl border border-[var(--glass-border)] bg-[var(--card)] p-4 shadow-2xl"
+            className="mx-4 mt-20 sm:mt-28 rounded-3xl border border-[var(--glass-border)] bg-[var(--card)] p-4 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="space-y-2">
@@ -194,7 +204,7 @@ export function NewNavbar() {
                 className="flex items-center gap-3 rounded-2xl px-4 py-3 text-[var(--foreground)] hover:bg-[var(--secondary)]"
               >
                 <RiHome4Line className="w-5 h-5 text-[var(--primary)]" />
-                Home
+                {t("nav_home")}
               </Link>
               <Link
                 href="/business"
@@ -202,7 +212,7 @@ export function NewNavbar() {
                 className="flex items-center gap-3 rounded-2xl px-4 py-3 text-[var(--foreground)] hover:bg-[var(--secondary)]"
               >
                 <RiStore2Line className="w-5 h-5 text-[var(--primary)]" />
-                For Business
+                {t("nav_for_business")}
               </Link>
               <Link
                 href="/contact"
@@ -210,7 +220,7 @@ export function NewNavbar() {
                 className="flex items-center gap-3 rounded-2xl px-4 py-3 text-[var(--foreground)] hover:bg-[var(--secondary)]"
               >
                 <RiMailLine className="w-5 h-5 text-[var(--primary)]" />
-                Contact
+                {t("nav_contact")}
               </Link>
               <Link
                 href="/favorites"
@@ -218,14 +228,14 @@ export function NewNavbar() {
                 className="flex items-center gap-3 rounded-2xl px-4 py-3 text-[var(--foreground)] hover:bg-[var(--secondary)]"
               >
                 <FaHeart className={hasFavorites ? "w-5 h-5 text-[var(--primary)]" : "w-5 h-5 text-[var(--muted-foreground)]"} />
-                Favorites
+                {t("nav_favorites")}
                 {hasFavorites && (
                   <span className="ml-auto rounded-full bg-[var(--primary)] px-2 py-0.5 text-xs font-bold text-[var(--primary-foreground)]">
                     {favorites.length}
                   </span>
                 )}
               </Link>
-              {isPartner && (
+              {isPartner ? (
                 <Link
                   href="/dashboard"
                   onClick={() => setMobileMenuOpen(false)}
@@ -234,25 +244,34 @@ export function NewNavbar() {
                   <RiDashboardLine className="w-5 h-5 text-[var(--primary)]" />
                   Dashboard
                 </Link>
+              ) : (
+                <Link
+                  href="/profile"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 rounded-2xl px-4 py-3 text-[var(--foreground)] hover:bg-[var(--secondary)]"
+                >
+                  <RiCalendarCheckLine className="w-5 h-5 text-[var(--primary)]" />
+                  {t("nav_my_bookings")}
+                </Link>
               )}
             </div>
 
             <div className="mt-4 flex items-center justify-between gap-3 border-t border-[var(--border)] pt-4">
               <button
-                onClick={() => setLanguage(language === "EN" ? "FR" : "EN")}
+                onClick={() => setLang(lang === "fr" ? "en" : "fr")}
                 className="flex items-center gap-2 rounded-2xl bg-[var(--secondary)] px-4 py-3 text-sm font-medium"
               >
                 <RiGlobalLine className="w-4 h-4" />
-                {language}
+                {lang === "fr" ? "FR" : "EN"}
               </button>
 
               <Show when="signed-out">
                 <div className="flex flex-1 justify-end gap-2">
                   <SignInButton mode="redirect" fallbackRedirectUrl="/">
-                    <button className="btn-secondary px-4 py-3 text-sm">Login</button>
+                    <button className="btn-secondary px-4 py-3 text-sm">{t("nav_login")}</button>
                   </SignInButton>
                   <SignUpButton mode="redirect" fallbackRedirectUrl="/">
-                    <button className="btn-primary px-4 py-3 text-sm">Sign Up</button>
+                    <button className="btn-primary px-4 py-3 text-sm">{t("nav_signup")}</button>
                   </SignUpButton>
                 </div>
               </Show>

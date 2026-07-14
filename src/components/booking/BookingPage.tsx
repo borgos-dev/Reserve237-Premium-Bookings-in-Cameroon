@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "motion/react";
 import {
   RiArrowLeftLine,
   RiCalendarLine,
+  RiTimeLine,
   RiTeamLine,
   RiMapPinLine,
   RiBankCardLine,
@@ -19,10 +20,14 @@ import {
 } from "react-icons/ri";
 import type { Listing } from "@/data/listings";
 import { generateSlug } from "@/lib/utils";
+import { createBooking } from "@/actions/bookings";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface BookingPageProps {
   listing: Listing;
   pricePerNight: number;
+  mainCategory: string;
+  userId?: string | null;
 }
 
 type PaymentMethodId = "mtn-momo" | "orange-money" | "card" | "cash";
@@ -35,12 +40,7 @@ interface PaymentMethod {
   icon?: typeof RiBankCardLine;
 }
 
-const PAYMENT_METHODS: PaymentMethod[] = [
-  { id: "mtn-momo", label: "MTN MoMo", sublabel: "Mobile Money", image: "/mtn%20logo%20momo.png" },
-  { id: "orange-money", label: "Orange Money", sublabel: "Mobile Money", image: "/orange-money-logo-png_seeklogo-440383.png" },
-  { id: "card", label: "Credit / Debit Card", sublabel: "Visa, Mastercard", icon: RiBankCardLine },
-  { id: "cash", label: "Cash on Arrival", sublabel: "Pay at the venue", icon: RiHandCoinLine },
-];
+// Payment methods built inside component (uses translations)
 
 const SERVICE_FEE_RATE = 0.07;
 
@@ -53,34 +53,76 @@ const tomorrow = () => {
   return d.toISOString().slice(0, 10);
 };
 
-export function BookingPage({ listing, pricePerNight }: BookingPageProps) {
+export function BookingPage({ listing, pricePerNight, mainCategory, userId }: BookingPageProps) {
   const slug = generateSlug(listing.name);
+  const { t } = useLanguage();
+  const isAccommodation = mainCategory === "accommodation";
+
+  const PAYMENT_METHODS: PaymentMethod[] = [
+    { id: "mtn-momo", label: "MTN MoMo", sublabel: t("mobile_money"), image: "/mtn%20logo%20momo.png" },
+    { id: "orange-money", label: "Orange Money", sublabel: t("mobile_money"), image: "/orange-money-logo-png_seeklogo-440383.png" },
+    { id: "card", label: t("credit_debit_card"), sublabel: t("visa_mastercard"), icon: RiBankCardLine },
+    { id: "cash", label: t("cash_on_arrival"), sublabel: t("pay_at_venue"), icon: RiHandCoinLine },
+  ];
 
   const [checkIn, setCheckIn] = useState<string>(today());
   const [checkOut, setCheckOut] = useState<string>(tomorrow());
+  const [bookingDate, setBookingDate] = useState<string>(today());
+  const [bookingTime, setBookingTime] = useState<string>("19:00");
   const [guests, setGuests] = useState<number>(2);
   const [payment, setPayment] = useState<PaymentMethodId>("mtn-momo");
   const [form, setForm] = useState({ name: "", phone: "", email: "", requests: "" });
   const [confirmed, setConfirmed] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const { nights, subtotal, serviceFee, total } = useMemo(() => {
-    const ms = new Date(checkOut).getTime() - new Date(checkIn).getTime();
-    const n = Math.max(0, Math.round(ms / 86_400_000));
-    const sub = pricePerNight * Math.max(1, n) * Math.max(1, guests);
+    if (isAccommodation) {
+      const ms = new Date(checkOut).getTime() - new Date(checkIn).getTime();
+      const n = Math.max(0, Math.round(ms / 86_400_000));
+      const sub = pricePerNight * Math.max(1, n) * Math.max(1, guests);
+      const fee = sub * SERVICE_FEE_RATE;
+      return { nights: n, subtotal: sub, serviceFee: fee, total: sub + fee };
+    }
+    const sub = pricePerNight * Math.max(1, guests);
     const fee = sub * SERVICE_FEE_RATE;
-    return { nights: n, subtotal: sub, serviceFee: fee, total: sub + fee };
-  }, [checkIn, checkOut, guests, pricePerNight]);
+    return { nights: 0, subtotal: sub, serviceFee: fee, total: sub + fee };
+  }, [isAccommodation, checkIn, checkOut, guests, pricePerNight]);
 
   const formValid =
     form.name.trim().length > 1 &&
     form.phone.trim().length >= 6 &&
     form.email.includes("@") &&
-    nights > 0;
+    (isAccommodation ? nights > 0 : bookingDate.length > 0 && bookingTime.length > 0);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formValid) return;
-    setConfirmed(true);
+    if (!formValid || submitting) return;
+
+    setSubmitting(true);
+    setSubmitError(null);
+
+    const result = await createBooking({
+      listingSlug: slug,
+      userId,
+      guestName: form.name,
+      guestEmail: form.email,
+      guestPhone: form.phone,
+      ...(isAccommodation ? { checkIn, checkOut } : { bookingDate, bookingTime }),
+      guests,
+      totalXaf: Math.round(total),
+      serviceFeeXaf: Math.round(serviceFee),
+      paymentMethod: payment,
+      notes: form.requests || undefined,
+    });
+
+    setSubmitting(false);
+
+    if (result.success) {
+      setConfirmed(true);
+    } else {
+      setSubmitError(result.error);
+    }
   };
 
   const inputClass =
@@ -95,12 +137,12 @@ export function BookingPage({ listing, pricePerNight }: BookingPageProps) {
           className="inline-flex items-center gap-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors mb-6 text-sm"
         >
           <RiArrowLeftLine className="w-4 h-4" />
-          Back to listing
+          {t("back_to_listing")}
         </Link>
 
-        <h1 className="font-display text-3xl sm:text-4xl font-bold mb-2">Confirm and pay</h1>
+        <h1 className="font-display text-3xl sm:text-4xl font-bold mb-2">{t("confirm_and_pay")}</h1>
         <p className="text-[var(--muted-foreground)] text-sm mb-8">
-          Review your booking details before completing your reservation.
+          {t("confirm_and_pay_subtitle")}
         </p>
 
         {/* ── Property Recap ── */}
@@ -117,7 +159,7 @@ export function BookingPage({ listing, pricePerNight }: BookingPageProps) {
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-[11px] uppercase tracking-wide text-[var(--muted-foreground)] mb-0.5">
-              Your booking
+              {t("your_booking")}
             </p>
             <h2 className="font-semibold text-base sm:text-lg leading-tight truncate">
               {listing.name}
@@ -132,53 +174,88 @@ export function BookingPage({ listing, pricePerNight }: BookingPageProps) {
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* ── Booking Summary ── */}
           <section className="card space-y-4">
-            <h3 className="font-semibold text-base">Booking details</h3>
+            <h3 className="font-semibold text-base">{t("booking_details")}</h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <label className="block">
-                <span className="text-xs uppercase tracking-wide text-[var(--muted-foreground)] block mb-1.5">
-                  Check-in
-                </span>
-                <div className="relative">
-                  <RiCalendarLine className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)] pointer-events-none" />
-                  <input
-                    type="date"
-                    value={checkIn}
-                    min={today()}
-                    onChange={(e) => {
-                      setCheckIn(e.target.value);
-                      if (e.target.value >= checkOut) {
-                        const d = new Date(e.target.value);
-                        d.setDate(d.getDate() + 1);
-                        setCheckOut(d.toISOString().slice(0, 10));
-                      }
-                    }}
-                    className={`${inputClass} pl-10`}
-                  />
-                </div>
-              </label>
+            {isAccommodation ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label className="block">
+                  <span className="text-xs uppercase tracking-wide text-[var(--muted-foreground)] block mb-1.5">
+                    {t("check_in")}
+                  </span>
+                  <div className="relative">
+                    <RiCalendarLine className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)] pointer-events-none" />
+                    <input
+                      type="date"
+                      value={checkIn}
+                      min={today()}
+                      onChange={(e) => {
+                        setCheckIn(e.target.value);
+                        if (e.target.value >= checkOut) {
+                          const d = new Date(e.target.value);
+                          d.setDate(d.getDate() + 1);
+                          setCheckOut(d.toISOString().slice(0, 10));
+                        }
+                      }}
+                      className={`${inputClass} pl-10`}
+                    />
+                  </div>
+                </label>
 
-              <label className="block">
-                <span className="text-xs uppercase tracking-wide text-[var(--muted-foreground)] block mb-1.5">
-                  Check-out
-                </span>
-                <div className="relative">
-                  <RiCalendarLine className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)] pointer-events-none" />
-                  <input
-                    type="date"
-                    value={checkOut}
-                    min={checkIn}
-                    onChange={(e) => setCheckOut(e.target.value)}
-                    className={`${inputClass} pl-10`}
-                  />
-                </div>
-              </label>
-            </div>
+                <label className="block">
+                  <span className="text-xs uppercase tracking-wide text-[var(--muted-foreground)] block mb-1.5">
+                    {t("check_out")}
+                  </span>
+                  <div className="relative">
+                    <RiCalendarLine className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)] pointer-events-none" />
+                    <input
+                      type="date"
+                      value={checkOut}
+                      min={checkIn}
+                      onChange={(e) => setCheckOut(e.target.value)}
+                      className={`${inputClass} pl-10`}
+                    />
+                  </div>
+                </label>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label className="block">
+                  <span className="text-xs uppercase tracking-wide text-[var(--muted-foreground)] block mb-1.5">
+                    {t("booking_date")}
+                  </span>
+                  <div className="relative">
+                    <RiCalendarLine className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)] pointer-events-none" />
+                    <input
+                      type="date"
+                      value={bookingDate}
+                      min={today()}
+                      onChange={(e) => setBookingDate(e.target.value)}
+                      className={`${inputClass} pl-10`}
+                    />
+                  </div>
+                </label>
+
+                <label className="block">
+                  <span className="text-xs uppercase tracking-wide text-[var(--muted-foreground)] block mb-1.5">
+                    {t("booking_time")}
+                  </span>
+                  <div className="relative">
+                    <RiTimeLine className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)] pointer-events-none" />
+                    <input
+                      type="time"
+                      value={bookingTime}
+                      onChange={(e) => setBookingTime(e.target.value)}
+                      className={`${inputClass} pl-10`}
+                    />
+                  </div>
+                </label>
+              </div>
+            )}
 
             <div className="flex items-center justify-between flex-wrap gap-3 pt-1">
               <div className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
                 <RiTeamLine className="w-4 h-4" />
-                <span>Guests</span>
+                <span>{t("guests")}</span>
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -186,7 +263,7 @@ export function BookingPage({ listing, pricePerNight }: BookingPageProps) {
                   onClick={() => setGuests((g) => Math.max(1, g - 1))}
                   className="w-9 h-9 rounded-full border border-[var(--border)] flex items-center justify-center hover:bg-[var(--surface-1)] transition-colors disabled:opacity-40"
                   disabled={guests <= 1}
-                  aria-label="Decrease guests"
+                  aria-label={t("decrease_guests")}
                 >
                   <RiSubtractLine className="w-4 h-4" />
                 </button>
@@ -196,40 +273,44 @@ export function BookingPage({ listing, pricePerNight }: BookingPageProps) {
                   onClick={() => setGuests((g) => Math.min(listing.capacity ?? 20, g + 1))}
                   className="w-9 h-9 rounded-full border border-[var(--border)] flex items-center justify-center hover:bg-[var(--surface-1)] transition-colors disabled:opacity-40"
                   disabled={guests >= (listing.capacity ?? 20)}
-                  aria-label="Increase guests"
+                  aria-label={t("increase_guests")}
                 >
                   <RiAddLine className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
-            <div className="pt-3 border-t border-[var(--border)] flex items-center justify-between text-sm">
-              <span className="text-[var(--muted-foreground)]">Duration</span>
-              <span className="font-medium">
-                {nights} {nights === 1 ? "night" : "nights"}
-              </span>
-            </div>
+            {isAccommodation && (
+              <div className="pt-3 border-t border-[var(--border)] flex items-center justify-between text-sm">
+                <span className="text-[var(--muted-foreground)]">{t("duration")}</span>
+                <span className="font-medium">
+                  {nights} {nights === 1 ? t("night") : t("nights")}
+                </span>
+              </div>
+            )}
           </section>
 
           {/* ── Price Breakdown ── */}
           <section className="card space-y-3">
-            <h3 className="font-semibold text-base">Price breakdown</h3>
+            <h3 className="font-semibold text-base">{t("price_breakdown")}</h3>
             <div className="space-y-2 text-sm">
               <div className="flex items-center justify-between">
                 <span className="text-[var(--muted-foreground)]">
-                  {fmtXAF(pricePerNight)} × {Math.max(1, nights)} {nights === 1 ? "night" : "nights"} × {guests} {guests === 1 ? "guest" : "guests"}
+                  {isAccommodation
+                    ? `${fmtXAF(pricePerNight)} × ${Math.max(1, nights)} ${nights === 1 ? t("night") : t("nights")} × ${guests}`
+                    : `${fmtXAF(pricePerNight)} × ${guests} ${guests === 1 ? t("guest_singular") : t("guest_plural")}`}
                 </span>
                 <span className="font-medium tabular-nums">{fmtXAF(subtotal)}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[var(--muted-foreground)]">
-                  Service fee ({Math.round(SERVICE_FEE_RATE * 100)}%)
+                  {t("service_fee")} ({Math.round(SERVICE_FEE_RATE * 100)}%)
                 </span>
                 <span className="font-medium tabular-nums">{fmtXAF(serviceFee)}</span>
               </div>
             </div>
             <div className="pt-3 border-t border-[var(--border)] flex items-center justify-between">
-              <span className="font-semibold">Total</span>
+              <span className="font-semibold">{t("total")}</span>
               <span className="font-display text-2xl font-bold text-[var(--primary)] tabular-nums">
                 {fmtXAF(total)}
               </span>
@@ -238,18 +319,18 @@ export function BookingPage({ listing, pricePerNight }: BookingPageProps) {
 
           {/* ── Guest Details ── */}
           <section className="card space-y-4">
-            <h3 className="font-semibold text-base">Guest details</h3>
+            <h3 className="font-semibold text-base">{t("guest_details")}</h3>
 
             <label className="block">
               <span className="text-xs uppercase tracking-wide text-[var(--muted-foreground)] block mb-1.5">
-                Full name
+                {t("full_name")}
               </span>
               <input
                 type="text"
                 required
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="As shown on your ID"
+                placeholder={t("as_shown_on_id")}
                 className={inputClass}
               />
             </label>
@@ -257,7 +338,7 @@ export function BookingPage({ listing, pricePerNight }: BookingPageProps) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <label className="block">
                 <span className="text-xs uppercase tracking-wide text-[var(--muted-foreground)] block mb-1.5">
-                  Phone number
+                  {t("phone_number")}
                 </span>
                 <input
                   type="tel"
@@ -271,7 +352,7 @@ export function BookingPage({ listing, pricePerNight }: BookingPageProps) {
 
               <label className="block">
                 <span className="text-xs uppercase tracking-wide text-[var(--muted-foreground)] block mb-1.5">
-                  Email
+                  {t("email")}
                 </span>
                 <input
                   type="email"
@@ -286,13 +367,13 @@ export function BookingPage({ listing, pricePerNight }: BookingPageProps) {
 
             <label className="block">
               <span className="text-xs uppercase tracking-wide text-[var(--muted-foreground)] block mb-1.5">
-                Special requests <span className="text-[var(--text-tertiary)] normal-case tracking-normal">(optional)</span>
+                {t("special_requests")} <span className="text-[var(--text-tertiary)] normal-case tracking-normal">({t("optional")})</span>
               </span>
               <textarea
                 rows={3}
                 value={form.requests}
                 onChange={(e) => setForm({ ...form, requests: e.target.value })}
-                placeholder="Dietary needs, accessibility, celebrations…"
+                placeholder={t("special_requests_placeholder")}
                 className={`${inputClass} resize-none`}
               />
             </label>
@@ -300,7 +381,7 @@ export function BookingPage({ listing, pricePerNight }: BookingPageProps) {
 
           {/* ── Payment Method ── */}
           <section className="card space-y-4">
-            <h3 className="font-semibold text-base">Payment method</h3>
+            <h3 className="font-semibold text-base">{t("payment_method")}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {PAYMENT_METHODS.map((m) => {
                 const selected = payment === m.id;
@@ -346,24 +427,33 @@ export function BookingPage({ listing, pricePerNight }: BookingPageProps) {
             </div>
           </section>
 
+          {/* ── Error message ── */}
+          {submitError && (
+            <p className="text-sm text-red-500 text-center px-4 py-2 bg-red-50 dark:bg-red-950/20 rounded-2xl border border-red-200 dark:border-red-800">
+              {submitError}
+            </p>
+          )}
+
           {/* ── Pay Now ── */}
           <button
             type="submit"
-            disabled={!formValid}
+            disabled={!formValid || submitting}
             className="w-full py-4 rounded-full bg-[#13695A] hover:bg-[#0A5C4A] text-[#F8F1EA] text-base font-semibold transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {formValid ? `Pay ${fmtXAF(total)}` : "Complete your details to continue"}
+            {submitting
+              ? t("processing")
+              : formValid
+              ? `${t("pay_button")} ${fmtXAF(total)}`
+              : t("complete_details")}
           </button>
 
           {/* ── Footer notes ── */}
           <div className="pt-2 space-y-2 text-xs text-[var(--muted-foreground)] text-center">
             <p className="inline-flex items-center justify-center gap-1.5">
               <RiShieldCheckLine className="w-3.5 h-3.5 text-[var(--primary)]" />
-              <span>Secure booking · Your payment is encrypted end-to-end.</span>
+              <span>{t("secure_booking")}</span>
             </p>
-            <p>
-              Free cancellation up to 24 hours before your reservation. After that, a one-night fee applies.
-            </p>
+            <p>{t("free_cancellation")}</p>
           </div>
         </form>
       </div>
@@ -397,23 +487,25 @@ export function BookingPage({ listing, pricePerNight }: BookingPageProps) {
               <div className="w-14 h-14 mx-auto rounded-full bg-[var(--primary)] flex items-center justify-center mb-4">
                 <RiCheckLine className="w-7 h-7 text-[var(--primary-foreground)]" />
               </div>
-              <h2 className="font-display text-2xl font-bold mb-2">Booking confirmed</h2>
+              <h2 className="font-display text-2xl font-bold mb-2">{t("booking_confirmed")}</h2>
               <p className="text-[var(--muted-foreground)] text-sm mb-5">
-                We&rsquo;ve sent a confirmation to <span className="font-medium text-[var(--foreground)]">{form.email}</span>.
-                The venue will be in touch shortly.
+                {t("confirmation_sent_to")} <span className="font-medium text-[var(--foreground)]">{form.email}</span>.
+                {" "}{t("venue_contact")}
               </p>
 
               <div className="bg-[var(--surface-1)] rounded-2xl p-4 text-left text-sm space-y-1.5 mb-5">
                 <div className="flex justify-between">
-                  <span className="text-[var(--muted-foreground)]">Property</span>
+                  <span className="text-[var(--muted-foreground)]">{t("property")}</span>
                   <span className="font-medium truncate ml-3">{listing.name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[var(--muted-foreground)]">Dates</span>
-                  <span className="font-medium">{checkIn} → {checkOut}</span>
+                  <span className="text-[var(--muted-foreground)]">{t("dates")}</span>
+                  <span className="font-medium">
+                    {isAccommodation ? `${checkIn} → ${checkOut}` : `${bookingDate} · ${bookingTime}`}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[var(--muted-foreground)]">Total paid</span>
+                  <span className="text-[var(--muted-foreground)]">{t("total_paid")}</span>
                   <span className="font-semibold text-[var(--primary)] tabular-nums">{fmtXAF(total)}</span>
                 </div>
               </div>
@@ -422,7 +514,7 @@ export function BookingPage({ listing, pricePerNight }: BookingPageProps) {
                 href="/"
                 className="block w-full py-3 rounded-full bg-[#13695A] hover:bg-[#0A5C4A] text-[#F8F1EA] font-semibold transition-colors"
               >
-                Back to home
+                {t("back_to_home")}
               </Link>
             </motion.div>
           </motion.div>

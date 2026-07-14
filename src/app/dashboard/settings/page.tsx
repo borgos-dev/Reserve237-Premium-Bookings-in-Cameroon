@@ -1,24 +1,23 @@
-"use client";
+import { auth, currentUser } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
+import { getBusinessProfile } from "@/actions/businesses";
+import { SettingsManager } from "@/components/dashboard/SettingsManager";
 
-import { motion } from "motion/react";
+export default async function SettingsPage() {
+  const { userId } = await auth();
+  if (!userId) redirect("/sign-in");
 
-export default function SettingsPage() {
+  const [user, business] = await Promise.all([
+    currentUser(),
+    getBusinessProfile(userId),
+  ]);
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-    >
-      <h1 className="text-4xl font-bold mb-2">Settings</h1>
-      <p className="text-[var(--muted-foreground)] mb-8">
-        Manage your account settings
-      </p>
-
-      <div className="card p-12 text-center">
-        <p className="text-[var(--muted-foreground)]">
-          Settings management coming soon
-        </p>
-      </div>
-    </motion.div>
+    <SettingsManager
+      userId={userId}
+      userEmail={user?.emailAddresses[0]?.emailAddress ?? ""}
+      userName={user?.firstName ?? ""}
+      business={business}
+    />
   );
 }

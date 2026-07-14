@@ -1,24 +1,23 @@
-"use client";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
+import { getPartnerListings } from "@/actions/listings";
+import { getOrCreateBusiness } from "@/actions/businesses";
+import { ListingsManager } from "@/components/dashboard/ListingsManager";
 
-import { motion } from "motion/react";
+export default async function ListingsPage() {
+  const { userId } = await auth();
+  if (!userId) redirect("/sign-in");
 
-export default function ListingsPage() {
+  const [partnerListings, business] = await Promise.all([
+    getPartnerListings(userId),
+    getOrCreateBusiness(userId),
+  ]);
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-    >
-      <h1 className="text-4xl font-bold mb-2">Listings</h1>
-      <p className="text-[var(--muted-foreground)] mb-8">
-        Manage your business listings
-      </p>
-
-      <div className="card p-12 text-center">
-        <p className="text-[var(--muted-foreground)]">
-          Listings management coming soon
-        </p>
-      </div>
-    </motion.div>
+    <ListingsManager
+      initialListings={partnerListings}
+      userId={userId}
+      businessPlan={business.plan}
+    />
   );
 }

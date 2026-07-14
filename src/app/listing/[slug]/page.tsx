@@ -1,610 +1,75 @@
-"use client";
+import type { Metadata } from "next";
 
-import { use, useState, useEffect } from "react";
+// Cache listing pages for 5 minutes — reviews and details don't change every second
+export const revalidate = 300;
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import Image from "next/image";
-import { motion, AnimatePresence } from "motion/react";
-import {
-  RiArrowLeftLine,
-  RiArrowRightLine,
-  RiArrowLeftSLine,
-  RiArrowRightSLine,
-  RiShieldCheckLine,
-  RiStarFill,
-  RiMapPinLine,
-  RiMoneyDollarCircleLine,
-  RiTimeLine,
-  RiTeamLine,
-  RiHeartLine,
-  RiHeartFill,
-  RiNavigationLine,
-  RiCloseLine,
-  RiImageLine,
-  RiDoubleQuotesL,
-  RiChat3Line,
-} from "react-icons/ri";
-import { allListings } from "@/data/listings";
-import { generateSlug } from "@/lib/utils";
-import { getCategoryBadgeClass } from "@/lib/categoryColors";
-import { amenityIcons } from "@/lib/amenityIcons";
-import { useFavoritesStore } from "@/stores";
+import { getPublicListingBySlug } from "@/actions/listings";
+import { getListingReviews } from "@/actions/reviews";
 import { NewNavbar } from "@/components/homepage/NewNavbar";
 import { NewFooter } from "@/components/homepage/NewFooter";
+import { ListingDetailContent } from "@/components/listing/ListingDetailContent";
+import { categoryLabels } from "@/lib/categoryColors";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-const FEATURED_REVIEWS = [
-  {
-    name: "Humphery",
-    quote:
-      "Service was impeccable from the moment we walked in. The attention to detail here separates Reserve237 partners from the rest.",
-  },
-  {
-    name: "Mr Wansi",
-    quote:
-      "Booked for an anniversary dinner and everything exceeded what was promised. The staff remembered our names by the second visit.",
-  },
-  {
-    name: "Mr Modest Wilton",
-    quote:
-      "Quietly one of the most refined experiences in town. No frills, no fuss — just done right.",
-  },
-  {
-    name: "Mr Abena",
-    quote:
-      "The ambience does the heavy lifting here. Soft lighting, the right music, and a team that knows when to disappear.",
-  },
-  {
-    name: "Arami",
-    quote:
-      "I've been three times this month and each visit feels considered. That's rare around here, honestly.",
-  },
-  {
-    name: "Simo Morelle",
-    quote:
-      "Pricing felt fair for the quality you get. Plenty of cheaper options out there but none come close on the details.",
-  },
-  {
-    name: "Jek",
-    quote:
-      "Took a group of friends for a Saturday night and the place delivered. Clean, organised, premium without being pretentious.",
-  },
-  {
-    name: "Borgos",
-    quote:
-      "What sold me was how easy the booking was. Showed up, table ready, drinks already on the way. That's the whole pitch.",
-  },
-];
+// ─── Dynamic SEO metadata per listing ────────────────────────────────────────
 
-export default function ListingDetailPage({ params }: PageProps) {
-  const { slug } = use(params);
-  const listing = allListings.find((l) => generateSlug(l.name) === slug);
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const listing = await getPublicListingBySlug(slug);
+
+  if (!listing) {
+    return { title: "Listing Not Found | Reserve237" };
+  }
+
+  const catLabel = categoryLabels[listing.mainCategory] ?? listing.mainCategory;
+  const title = `${listing.name} — ${catLabel} in ${listing.city} | Reserve237`;
+
+  const description = listing.description
+    ? `${listing.description.slice(0, 155)}…`
+    : `Book ${listing.name} in ${listing.location}. ${
+        listing.priceLabel ? `${listing.priceLabel}. ` : ""
+      }Reserve237 — Cameroon's booking platform.`;
+
+  const images = listing.image
+    ? [{ url: listing.image, width: 1200, height: 630, alt: listing.name }]
+    : [];
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      locale: "en_CM",
+      images,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: listing.image ? [listing.image] : [],
+    },
+  };
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+export default async function ListingDetailPage({ params }: PageProps) {
+  const { slug } = await params;
+  const listing = await getPublicListingBySlug(slug);
   if (!listing) notFound();
 
-  const photos = listing.images?.length ? listing.images : [listing.image];
-
-  const { isFavorite, toggleFavorite } = useFavoritesStore();
-  const [mounted, setMounted] = useState(false);
-  const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [lightboxIndex, setLightboxIndex] = useState(0);
-
-  useEffect(() => { setMounted(true); }, []);
-
-  const favorite = mounted && isFavorite(listing.id);
-
-  const openLightbox = (i: number) => { setLightboxIndex(i); setLightboxOpen(true); };
-  const closeLightbox = () => setLightboxOpen(false);
-  const prevLightbox = () => setLightboxIndex((i) => (i - 1 + photos.length) % photos.length);
-  const nextLightbox = () => setLightboxIndex((i) => (i + 1) % photos.length);
-
-  useEffect(() => {
-    if (!lightboxOpen) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "ArrowLeft") prevLightbox();
-      if (e.key === "ArrowRight") nextLightbox();
-      if (e.key === "Escape") closeLightbox();
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [lightboxOpen]);
-
-  const priceSymbol =
-    ({ budget: "$", "mid-range": "$$", premium: "$$$", luxury: "$$$$" }[listing.priceRange ?? "mid-range"]) ?? "$$";
-
-  const featuredReview = FEATURED_REVIEWS[listing.id % FEATURED_REVIEWS.length];
+  const reviews = await getListingReviews(listing.id);
 
   return (
-    <main className="bg-[var(--background)] text-[var(--foreground)] min-h-screen">
+    <>
       <NewNavbar />
-
-      {/* ── Lightbox ── */}
-      <AnimatePresence>
-        {lightboxOpen && (
-          <motion.div
-            className="fixed inset-0 z-50 bg-[#1F2A2A]/95 flex flex-col"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            {/* Lightbox header */}
-            <div className="flex items-center justify-between px-6 py-4 shrink-0">
-              <span className="text-[#F8F1EA]/60 text-sm">
-                {lightboxIndex + 1} / {photos.length}
-              </span>
-              <button
-                onClick={closeLightbox}
-                className="w-10 h-10 rounded-full bg-[#F8F1EA]/10 hover:bg-[#F8F1EA]/20 flex items-center justify-center transition-colors"
-              >
-                <RiCloseLine className="w-5 h-5 text-[#F8F1EA]" />
-              </button>
-            </div>
-
-            {/* Lightbox main image */}
-            <div className="flex-1 flex items-center justify-center relative px-16 min-h-0">
-              <button
-                onClick={prevLightbox}
-                className="absolute left-4 w-12 h-12 rounded-full bg-[#F8F1EA]/10 hover:bg-[#F8F1EA]/25 flex items-center justify-center transition-colors"
-              >
-                <RiArrowLeftSLine className="w-6 h-6 text-[#F8F1EA]" />
-              </button>
-              <motion.img
-                key={lightboxIndex}
-                src={photos[lightboxIndex]}
-                alt={`${listing.name} photo ${lightboxIndex + 1}`}
-                className="max-h-full max-w-full object-contain rounded-2xl"
-                initial={{ opacity: 0, scale: 0.96 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              />
-              <button
-                onClick={nextLightbox}
-                className="absolute right-4 w-12 h-12 rounded-full bg-[#F8F1EA]/10 hover:bg-[#F8F1EA]/25 flex items-center justify-center transition-colors"
-              >
-                <RiArrowRightSLine className="w-6 h-6 text-[#F8F1EA]" />
-              </button>
-            </div>
-
-            {/* Lightbox thumbnails */}
-            <div className="flex gap-2 justify-center px-6 py-4 shrink-0 overflow-x-auto scrollbar-hide">
-              {photos.map((src, i) => (
-                <button
-                  key={i}
-                  onClick={() => setLightboxIndex(i)}
-                  className={`relative shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${
-                    i === lightboxIndex ? "border-[#F8F1EA] scale-105" : "border-[#F8F1EA]/20 opacity-60 hover:opacity-90"
-                  }`}
-                >
-                  <Image
-                    src={src}
-                    alt=""
-                    fill
-                    sizes="64px"
-                    unoptimized={src.startsWith("http")}
-                    className="object-cover"
-                  />
-                </button>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-24">
-        {/* Back — mobile only */}
-        <Link
-          href="/"
-          className="md:hidden inline-flex items-center gap-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors mb-8"
-        >
-          <RiArrowLeftLine className="w-4 h-4" />
-          Back to listings
-        </Link>
-
-        {/* ── Photo Mosaic Gallery ── */}
-        <motion.div
-          className="mb-10"
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          {/* Mobile: single hero with "view all" overlay */}
-          <div className="md:hidden relative rounded-3xl overflow-hidden aspect-[4/3] cursor-pointer group"
-            onClick={() => openLightbox(0)}
-          >
-            <Image
-              src={photos[0]}
-              alt={listing.name}
-              fill
-              sizes="100vw"
-              priority
-              unoptimized={photos[0].startsWith("http")}
-              className="object-cover"
-            />
-            {listing.verified && (
-              <div className="absolute top-4 left-4 bg-[var(--primary)] text-[var(--primary-foreground)] px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-xs font-medium shadow-lg">
-                <RiShieldCheckLine className="w-4 h-4" />
-                Verified Partner
-              </div>
-            )}
-            <button
-              onClick={(e) => { e.stopPropagation(); openLightbox(0); }}
-              className="absolute bottom-4 right-4 bg-[#F8F1EA]/95 hover:bg-[#F8F1EA] text-[#1F2A2A] px-3 py-1.5 rounded-xl flex items-center gap-2 text-xs font-semibold backdrop-blur-sm"
-            >
-              <RiImageLine className="w-4 h-4" />
-              {photos.length} photos
-            </button>
-          </div>
-
-          {/* Desktop / Tablet: mosaic grid */}
-          <div className="hidden md:block">
-            {/* Top row: hero + 2 stacked */}
-            <div className="grid grid-cols-3 gap-2 h-[420px]">
-              {/* Hero (spans 2 cols, full height) */}
-              <div
-                className="relative col-span-2 row-span-2 rounded-3xl overflow-hidden cursor-pointer group"
-                onClick={() => openLightbox(0)}
-              >
-                <Image
-                  src={photos[0]}
-                  alt={listing.name}
-                  fill
-                  sizes="(min-width: 1024px) 66vw, 100vw"
-                  priority
-                  unoptimized={photos[0].startsWith("http")}
-                  className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-[#1F2A2A]/0 group-hover:bg-[#1F2A2A]/10 transition-colors" />
-                {listing.verified && (
-                  <div className="absolute top-5 left-5 bg-[var(--primary)] text-[var(--primary-foreground)] px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-sm font-medium shadow-lg">
-                    <RiShieldCheckLine className="w-4 h-4" />
-                    Verified Partner
-                  </div>
-                )}
-              </div>
-
-              {/* Top-right image */}
-              {photos[1] && (
-                <div
-                  className="relative rounded-3xl overflow-hidden cursor-pointer group"
-                  onClick={() => openLightbox(1)}
-                >
-                  <Image
-                    src={photos[1]}
-                    alt=""
-                    fill
-                    sizes="(min-width: 1024px) 33vw, 50vw"
-                    unoptimized={photos[1].startsWith("http")}
-                    className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-[#1F2A2A]/0 group-hover:bg-[#1F2A2A]/10 transition-colors" />
-                </div>
-              )}
-
-              {/* Bottom-right image */}
-              {photos[2] && (
-                <div
-                  className="relative rounded-3xl overflow-hidden cursor-pointer group"
-                  onClick={() => openLightbox(2)}
-                >
-                  <Image
-                    src={photos[2]}
-                    alt=""
-                    fill
-                    sizes="(min-width: 1024px) 33vw, 50vw"
-                    unoptimized={photos[2].startsWith("http")}
-                    className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-[#1F2A2A]/0 group-hover:bg-[#1F2A2A]/10 transition-colors" />
-                </div>
-              )}
-            </div>
-
-            {/* Bottom row: 5 thumbnails */}
-            {photos.length > 3 && (
-              <div className="grid grid-cols-5 gap-2 mt-2 h-[120px]">
-                {photos.slice(3, 8).map((src, i) => {
-                  const realIndex = i + 3;
-                  const isLastVisible = i === 4 && photos.length > 8;
-                  const extraCount = photos.length - 8;
-                  return (
-                    <div
-                      key={realIndex}
-                      className="relative rounded-2xl overflow-hidden cursor-pointer group"
-                      onClick={() => openLightbox(realIndex)}
-                    >
-                      <Image
-                        src={src}
-                        alt=""
-                        fill
-                        sizes="20vw"
-                        unoptimized={src.startsWith("http")}
-                        className="w-full h-full object-cover group-hover:scale-[1.06] transition-transform duration-500"
-                      />
-                      {isLastVisible ? (
-                        <div className="absolute inset-0 bg-[#1F2A2A]/55 group-hover:bg-[#1F2A2A]/70 transition-colors flex items-center justify-center">
-                          <span className="text-[#F8F1EA] text-base font-semibold">
-                            +{extraCount} photos
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="absolute inset-0 bg-[#1F2A2A]/0 group-hover:bg-[#1F2A2A]/10 transition-colors" />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </motion.div>
-
-        {/* ── Main Content Grid ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-
-          {/* ── Left col: Details ── */}
-          <motion.div
-            className="lg:col-span-2 space-y-8"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-          >
-            {/* Category + Title */}
-            <div>
-              <span className={`badge capitalize inline-block mb-3 ${getCategoryBadgeClass(listing.category)}`}>
-                {listing.category.replace(/-/g, " ")}
-              </span>
-              <h1 className="text-4xl md:text-5xl font-bold mb-3 leading-tight">{listing.name}</h1>
-              <div className="flex items-center gap-3 flex-wrap text-[var(--muted-foreground)]">
-                <div className="flex items-center gap-1.5">
-                  <RiStarFill className="w-5 h-5 text-[#E8B923]" />
-                  <span className="font-semibold text-[var(--foreground)] text-lg">{listing.rating}</span>
-                  <span>({listing.reviews} reviews)</span>
-                </div>
-                <span>·</span>
-                <div className="flex items-center gap-1.5">
-                  <RiMapPinLine className="w-4 h-4" />
-                  {listing.location}
-                </div>
-                {listing.priceRange && (
-                  <>
-                    <span>·</span>
-                    <span className="capitalize">{listing.priceRange}</span>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Description */}
-            {listing.description && (
-              <div>
-                <h2 className="text-xl font-semibold mb-3">About</h2>
-                <p className="text-[var(--muted-foreground)] leading-relaxed text-base">
-                  {listing.description}
-                </p>
-              </div>
-            )}
-
-            {/* Key info cards */}
-            <div>
-              <div className="mb-5">
-                <h2 className="text-2xl sm:text-3xl font-bold mb-2">Booking Details</h2>
-                <p className="text-sm text-[var(--muted-foreground)]">
-                  Essential information before you reserve this place.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4">
-                <div className="card p-5">
-                  <div className="w-12 h-12 bg-[var(--primary)]/10 rounded-2xl flex items-center justify-center mb-4">
-                    <RiMapPinLine className="w-6 h-6 text-[var(--primary)]" />
-                  </div>
-                  <p className="text-[var(--muted-foreground)] text-xs font-medium uppercase tracking-wide mb-1">Location</p>
-                  <p className="font-semibold text-base leading-snug">{listing.location}</p>
-                  {listing.city && <p className="text-[var(--muted-foreground)] text-sm mt-1">{listing.city}</p>}
-                </div>
-
-                <div className="card p-5">
-                  <div className="w-12 h-12 bg-[var(--primary)]/10 rounded-2xl flex items-center justify-center mb-4">
-                    <RiMoneyDollarCircleLine className="w-6 h-6 text-[var(--primary)]" />
-                  </div>
-                  <p className="text-[var(--muted-foreground)] text-xs font-medium uppercase tracking-wide mb-1">Price</p>
-                  <p className="font-semibold text-base leading-snug text-[var(--primary)]">{listing.price}</p>
-                  {listing.priceRange && (
-                    <p className="text-[var(--muted-foreground)] text-sm mt-1 capitalize">{listing.priceRange}</p>
-                  )}
-                </div>
-
-                {listing.capacity && (
-                  <div className="card p-5">
-                    <div className="w-12 h-12 bg-[var(--primary)]/10 rounded-2xl flex items-center justify-center mb-4">
-                      <RiTeamLine className="w-6 h-6 text-[var(--primary)]" />
-                    </div>
-                    <p className="text-[var(--muted-foreground)] text-xs font-medium uppercase tracking-wide mb-1">Capacity</p>
-                    <p className="font-semibold text-base leading-snug">{listing.capacity} guests</p>
-                  </div>
-                )}
-
-                {listing.hours && (
-                  <div className="card p-5">
-                    <div className="w-12 h-12 bg-[var(--primary)]/10 rounded-2xl flex items-center justify-center mb-4">
-                      <RiTimeLine className="w-6 h-6 text-[var(--primary)]" />
-                    </div>
-                    <p className="text-[var(--muted-foreground)] text-xs font-medium uppercase tracking-wide mb-1">Hours</p>
-                    <p className="font-semibold text-base leading-snug">{listing.hours.open} - {listing.hours.close}</p>
-                    <p className="text-[var(--muted-foreground)] text-sm mt-1">{listing.hours.days}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Amenities */}
-            {listing.tags.length > 0 && (
-              <div>
-                <h2 className="text-xl font-semibold mb-4">Amenities</h2>
-                <div className="flex flex-wrap gap-2">
-                  {listing.tags.map((tag) => {
-                    const Icon = amenityIcons[tag as keyof typeof amenityIcons];
-                    return (
-                      <span key={tag} className="badge flex items-center gap-1.5 text-sm py-2 px-3">
-                        {Icon && <Icon className="w-3.5 h-3.5 flex-none" />}
-                        {tag}
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Specs strip */}
-            <div className="card p-0 overflow-hidden">
-              <div className="flex flex-wrap divide-y sm:divide-y-0 sm:divide-x divide-[var(--border)]">
-                <div className="flex items-center gap-3 px-5 py-4 flex-1 min-w-[160px]">
-                  <RiStarFill className="w-5 h-5 text-[#E8B923] flex-none" />
-                  <div className="min-w-0">
-                    <p className="text-base font-semibold leading-tight">{listing.rating}</p>
-                    <p className="text-[11px] uppercase tracking-wide text-[var(--muted-foreground)] mt-0.5">Rating</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 px-5 py-4 flex-1 min-w-[160px]">
-                  <RiChat3Line className="w-5 h-5 text-[var(--primary)] flex-none" />
-                  <div className="min-w-0">
-                    <p className="text-base font-semibold leading-tight">{listing.reviews}</p>
-                    <p className="text-[11px] uppercase tracking-wide text-[var(--muted-foreground)] mt-0.5">Reviews</p>
-                  </div>
-                </div>
-
-                {listing.capacity && (
-                  <div className="flex items-center gap-3 px-5 py-4 flex-1 min-w-[160px]">
-                    <RiTeamLine className="w-5 h-5 text-[var(--primary)] flex-none" />
-                    <div className="min-w-0">
-                      <p className="text-base font-semibold leading-tight">Up to {listing.capacity}</p>
-                      <p className="text-[11px] uppercase tracking-wide text-[var(--muted-foreground)] mt-0.5">Guests</p>
-                    </div>
-                  </div>
-                )}
-
-                {listing.priceRange && (
-                  <div className="flex items-center gap-3 px-5 py-4 flex-1 min-w-[160px]">
-                    <span className="w-5 text-center text-base font-bold text-[var(--primary)] flex-none tabular-nums">{priceSymbol}</span>
-                    <div className="min-w-0">
-                      <p className="text-base font-semibold leading-tight capitalize">{listing.priceRange}</p>
-                      <p className="text-[11px] uppercase tracking-wide text-[var(--muted-foreground)] mt-0.5">Price Level</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Featured review */}
-            <div className="card relative">
-              <RiDoubleQuotesL className="absolute top-5 right-5 w-10 h-10 text-[var(--primary)]/10" aria-hidden />
-              <div className="flex items-center gap-1 mb-3">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <RiStarFill
-                    key={i}
-                    className={`w-4 h-4 ${i < Math.round(listing.rating) ? "text-[#E8B923]" : "text-[var(--muted-foreground)]/30"}`}
-                  />
-                ))}
-              </div>
-              <p className="font-display text-lg sm:text-xl leading-snug mb-4 max-w-prose">
-                &ldquo;{featuredReview.quote}&rdquo;
-              </p>
-              <div className="flex items-center justify-between flex-wrap gap-3">
-                <p className="text-sm text-[var(--muted-foreground)]">
-                  &mdash; {featuredReview.name}
-                </p>
-                <a
-                  href="#reviews"
-                  className="text-sm font-medium text-[var(--primary)] hover:text-[var(--primary-hover)] transition-colors inline-flex items-center gap-1"
-                >
-                  Read all {listing.reviews} reviews
-                  <RiArrowRightLine className="w-4 h-4" />
-                </a>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* ── Right col: Sticky Booking Card ── */}
-          <motion.div
-            className="lg:col-span-1"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
-            <div className="lg:sticky lg:top-28 space-y-4">
-              <div className="card space-y-5">
-                {/* Price */}
-                <div>
-                  <p className="text-[var(--muted-foreground)] text-sm">Starting from</p>
-                  <p className="text-2xl font-bold text-[var(--primary)] mt-0.5">{listing.price}</p>
-                  {listing.priceRange && (
-                    <span className="text-xs text-[var(--muted-foreground)] capitalize">{listing.priceRange}</span>
-                  )}
-                </div>
-
-                {/* Rating summary */}
-                <div className="flex items-center gap-2 py-3 border-y border-[var(--border)]">
-                  <RiStarFill className="w-5 h-5 text-[#E8B923] shrink-0" />
-                  <span className="font-bold">{listing.rating}</span>
-                  <span className="text-[var(--muted-foreground)] text-sm">· {listing.reviews} reviews</span>
-                </div>
-
-                {/* Book CTA */}
-                <Link
-                  href={`/listing/${slug}/book`}
-                  className="btn-primary w-full py-4 text-base font-semibold text-center block"
-                >
-                  Book Now
-                </Link>
-
-                {/* Favorite */}
-                <button
-                  onClick={() => toggleFavorite(listing)}
-                  className={`w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-medium transition-all ${
-                    favorite
-                      ? "bg-[var(--primary)]/10 text-[var(--primary)] border border-[var(--primary)]/30 hover:bg-[var(--primary)]/20"
-                      : "btn-secondary"
-                  }`}
-                >
-                  {favorite ? (
-                    <><RiHeartFill className="w-5 h-5" /> Saved</>
-                  ) : (
-                    <><RiHeartLine className="w-5 h-5" /> Save to Favorites</>
-                  )}
-                </button>
-
-                {/* Contact buttons */}
-                <div className="grid grid-cols-1 gap-3">
-                  <button
-                    className="flex items-center justify-center gap-2 py-3 btn-secondary rounded-2xl font-medium text-sm"
-                  >
-                    <RiNavigationLine className="w-4 h-4" />
-                    Directions
-                  </button>
-                </div>
-              </div>
-
-              {/* Verified note */}
-              {listing.verified && (
-                <div className="flex items-start gap-3 p-4 bg-[var(--primary)]/8 rounded-2xl border border-[var(--primary)]/20">
-                  <RiShieldCheckLine className="w-5 h-5 text-[var(--primary)] shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-[var(--primary)]">Verified Partner</p>
-                    <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
-                      This listing has been verified by the Reserve237 team.
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        </div>
-      </div>
-
+      <ListingDetailContent listing={listing} reviews={reviews} />
       <NewFooter />
-    </main>
+    </>
   );
 }

@@ -6,6 +6,7 @@ import { AuthHeader } from "@/components/auth/AuthHeader";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { RiMailLine, RiLockLine, RiEyeLine, RiEyeOffLine, RiArrowRightLine } from "react-icons/ri";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function SignInPage() {
   const { signIn, fetchStatus } = useSignIn();
@@ -17,13 +18,14 @@ export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (!signIn?.createdSessionId) return;
     setActive({ session: signIn.createdSessionId })
       .then(() => router.push("/"))
-      .catch((err: any) => {
-        setError(err?.message ?? "Could not complete sign-in.");
+      .catch(() => {
+        setError(t("err_signin_failed"));
         setLoading(false);
       });
   }, [signIn?.createdSessionId]);
@@ -31,7 +33,7 @@ export default function SignInPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!signIn) {
-      setError("Authentication service is not ready. Please refresh and try again.");
+      setError(t("err_auth_not_ready"));
       return;
     }
     setError("");
@@ -39,11 +41,11 @@ export default function SignInPage() {
     try {
       const { error: signInError } = await signIn.create({ identifier: email, password });
       if (signInError) {
-        setError(signInError.message ?? "Invalid email or password.");
+        setError(t("err_invalid_credentials"));
         setLoading(false);
       }
-    } catch (err: any) {
-      setError(err.errors?.[0]?.message ?? err.message ?? "Invalid email or password.");
+    } catch {
+      setError(t("err_invalid_credentials"));
       setLoading(false);
     }
   }
@@ -55,9 +57,9 @@ export default function SignInPage() {
       <div className="flex-1 flex items-center justify-center px-4 py-16">
         <div className="w-full max-w-md">
           <div className="text-center mb-10">
-            <h1 className="text-3xl font-bold mb-2">Welcome back</h1>
+            <h1 className="text-3xl font-bold mb-2">{t("welcome_back")}</h1>
             <p className="text-[var(--muted-foreground)]">
-              Sign in to your Reserve237 account
+              {t("sign_in_subtitle")}
             </p>
           </div>
 
@@ -69,6 +71,8 @@ export default function SignInPage() {
                 <RiMailLine className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
                 <input
                   type="email"
+                  name="email"
+                  autoComplete="email"
                   required
                   placeholder="you@example.com"
                   className="input-field pl-10 w-full"
@@ -80,11 +84,18 @@ export default function SignInPage() {
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-medium mb-1.5">Password</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-sm font-medium">{t("password")}</label>
+                <Link href="/forgot-password" className="text-xs text-[var(--primary)] hover:underline">
+                  {t("forgot_password")}
+                </Link>
+              </div>
               <div className="relative">
                 <RiLockLine className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
                 <input
                   type={showPassword ? "text" : "password"}
+                  name="password"
+                  autoComplete="current-password"
                   required
                   placeholder="••••••••"
                   className="input-field pl-10 pr-10 w-full"
@@ -95,7 +106,7 @@ export default function SignInPage() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-label={showPassword ? t("hide_password") : t("show_password")}
                 >
                   {showPassword ? <RiEyeOffLine className="w-4 h-4" /> : <RiEyeLine className="w-4 h-4" />}
                 </button>
@@ -112,22 +123,22 @@ export default function SignInPage() {
               disabled={loading || fetchStatus === "fetching" || !signIn}
               className="btn-primary w-full py-3 flex items-center justify-center gap-2 disabled:opacity-60"
             >
-              {loading ? "Signing in…" : (
-                <>Sign In <RiArrowRightLine className="w-4 h-4" /></>
+              {loading ? t("signing_in") : (
+                <>{t("sign_in")} <RiArrowRightLine className="w-4 h-4" /></>
               )}
             </button>
           </form>
 
           <p className="text-center text-sm text-[var(--muted-foreground)] mt-6">
-            Don&rsquo;t have an account?{" "}
+            {t("no_account")}{" "}
             <Link href="/sign-up" className="text-[var(--primary)] hover:underline font-medium">
-              Create one
+              {t("create_one")}
             </Link>
           </p>
           <p className="text-center text-sm text-[var(--muted-foreground)] mt-2">
-            Are you a business?{" "}
+            {t("are_you_business")}{" "}
             <Link href="/business/sign-in" className="text-[var(--primary)] hover:underline font-medium">
-              Sign in here
+              {t("sign_in_here")}
             </Link>
           </p>
         </div>

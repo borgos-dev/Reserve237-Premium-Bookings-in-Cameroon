@@ -1,3 +1,13 @@
+import {
+  RiRestaurantLine,
+  RiMoonLine,
+  RiScissorsLine,
+  RiCalendarEventLine,
+  RiBuildingLine,
+  RiCarLine,
+} from "react-icons/ri";
+import type { ElementType } from "react";
+
 export type CategoryColorSet = {
   text: string;
   border: string;
@@ -6,73 +16,84 @@ export type CategoryColorSet = {
   accent: string;
 };
 
-const primarySet: CategoryColorSet = {
-  text: "text-[#13695A]",
-  border: "border-[#13695A]/50",
-  activeBg: "bg-[#13695A]/20",
-  dot: "bg-[#13695A]",
-  accent: "from-[#13695A]/20",
-};
-
-const accentSet: CategoryColorSet = {
-  text: "text-[#E8B923]",
-  border: "border-[#E8B923]/50",
-  activeBg: "bg-[#E8B923]/20",
-  dot: "bg-[#E8B923]",
-  accent: "from-[#E8B923]/20",
-};
+// ─── New 6-category system ────────────────────────────────────────────────────
 
 export const categoryColors: Record<string, CategoryColorSet> = {
-  restaurant:        accentSet,
-  nightclub:         primarySet,
-  lounge:            accentSet,
-  bar:               accentSet,
-  guesthouse:        primarySet,
-  hotel:             primarySet,
-  "wedding-hall":    accentSet,
-  "corporate-space": primarySet,
-  "event-venue":     primarySet,
+  "food-drinks": {
+    text: "text-amber-700",
+    border: "border-amber-400/60",
+    activeBg: "bg-amber-100",
+    dot: "bg-amber-500",
+    accent: "from-amber-100",
+  },
+  nightlife: {
+    text: "text-purple-700",
+    border: "border-purple-400/60",
+    activeBg: "bg-purple-100",
+    dot: "bg-purple-500",
+    accent: "from-purple-100",
+  },
+  "beauty-wellness": {
+    text: "text-pink-700",
+    border: "border-pink-400/60",
+    activeBg: "bg-pink-100",
+    dot: "bg-pink-500",
+    accent: "from-pink-100",
+  },
+  "events-venues": {
+    text: "text-blue-700",
+    border: "border-blue-400/60",
+    activeBg: "bg-blue-100",
+    dot: "bg-blue-500",
+    accent: "from-blue-100",
+  },
+  accommodation: {
+    text: "text-[#13695A]",
+    border: "border-[#13695A]/50",
+    activeBg: "bg-[#13695A]/15",
+    dot: "bg-[#13695A]",
+    accent: "from-[#13695A]/15",
+  },
+  "transport-more": {
+    text: "text-green-700",
+    border: "border-green-400/60",
+    activeBg: "bg-green-100",
+    dot: "bg-green-500",
+    accent: "from-green-100",
+  },
 };
+
+export const categoryIcons: Record<string, ElementType> = {
+  "food-drinks":      RiRestaurantLine,
+  nightlife:          RiMoonLine,
+  "beauty-wellness":  RiScissorsLine,
+  "events-venues":    RiCalendarEventLine,
+  accommodation:      RiBuildingLine,
+  "transport-more":   RiCarLine,
+};
+
+export const categoryLabels: Record<string, string> = {
+  "food-drinks":      "Food & Drinks",
+  nightlife:          "Nightlife",
+  "beauty-wellness":  "Beauty & Wellness",
+  "events-venues":    "Events & Venues",
+  accommodation:      "Accommodation",
+  "transport-more":   "Transport & More",
+};
+
+export const ALL_MAIN_CATEGORIES = [
+  "food-drinks",
+  "nightlife",
+  "beauty-wellness",
+  "events-venues",
+  "accommodation",
+  "transport-more",
+] as const;
+
+export type MainCategory = (typeof ALL_MAIN_CATEGORIES)[number];
 
 export function getCategoryBadgeClass(category: string): string {
   const c = categoryColors[category];
   if (!c) return "bg-[var(--secondary)] text-[var(--muted-foreground)]";
   return `${c.activeBg} ${c.text} border ${c.border}`;
 }
-
-import {
-  RiRestaurantLine,
-  RiMusic2Line,
-  RiGobletLine,
-  RiDrinksFill,
-  RiHome4Line,
-  RiBuildingLine,
-  RiTeamLine,
-  RiBuilding2Line,
-  RiCalendarEventLine,
-} from "react-icons/ri";
-import type { ElementType } from "react";
-
-export const categoryIcons: Record<string, ElementType> = {
-  restaurant:         RiRestaurantLine,
-  nightclub:          RiMusic2Line,
-  lounge:             RiGobletLine,
-  bar:                RiDrinksFill,
-  guesthouse:         RiHome4Line,
-  hotel:              RiBuildingLine,
-  "wedding-hall":     RiTeamLine,
-  "corporate-space":  RiBuilding2Line,
-  "event-venue":      RiCalendarEventLine,
-};
-
-export const categoryLabels: Record<string, string> = {
-  restaurant:        "Restaurant",
-  nightclub:         "Nightclub",
-  lounge:            "Lounge",
-  bar:               "Bar",
-  guesthouse:        "Guest House",
-  hotel:             "Hotel",
-  "wedding-hall":    "Wedding Hall",
-  "corporate-space": "Corporate Space",
-  "event-venue":     "Event Venue",
-};

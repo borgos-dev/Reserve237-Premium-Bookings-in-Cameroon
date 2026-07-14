@@ -13,6 +13,7 @@ import {
 } from "react-icons/ri";
 import Link from "next/link";
 import { useState } from "react";
+import { useClerk } from "@clerk/nextjs";
 
 const navItems = [
   { icon: RiDashboardLine, label: "Overview", href: "/dashboard" },
@@ -28,6 +29,7 @@ interface DashboardSidebarProps {
 }
 
 export function DashboardSidebar({ open = true, onClose }: DashboardSidebarProps) {
+  const { signOut } = useClerk();
   return (
     <motion.div
       initial={{ x: -256 }}
@@ -70,7 +72,10 @@ export function DashboardSidebar({ open = true, onClose }: DashboardSidebarProps
           <div className="w-4 h-4 bg-[var(--primary)]/50 rounded-full" />
           Pause Bookings
         </button>
-        <button className="w-full flex items-center gap-2 px-4 py-3 rounded-lg text-[var(--muted-foreground)] hover:text-[var(--destructive)] transition-colors">
+        <button
+          onClick={() => signOut({ redirectUrl: '/' })}
+          className="w-full flex items-center gap-2 px-4 py-3 rounded-lg text-[var(--muted-foreground)] hover:text-[var(--destructive)] transition-colors"
+        >
           <RiLogoutBoxRLine className="w-5 h-5" />
           <span className="font-medium">Logout</span>
         </button>

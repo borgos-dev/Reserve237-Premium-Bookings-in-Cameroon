@@ -7,27 +7,27 @@ import { useState, useEffect } from "react";
 import {
   RiStarFill,
   RiShieldCheckLine,
-  RiNavigationLine,
   RiMapPinLine,
   RiHeartLine,
   RiHeartFill,
 } from "react-icons/ri";
 import { useFavoritesStore } from "@/stores";
-import { Listing } from "@/data/listings";
-import { generateSlug } from "@/lib/utils";
-import { getCategoryBadgeClass } from "@/lib/categoryColors";
-import { amenityIcons } from "@/lib/amenityIcons";
+import type { PublicListing } from "@/types/listing";
+import { getCategoryBadgeClass, categoryLabels } from "@/lib/categoryColors";
+import { useLanguage } from "@/contexts/LanguageContext";
+
+const NEW_LABEL: Record<string, string> = { fr: "Nouveau", en: "New" };
 
 interface PremiumListingCardProps {
-  listing: Listing;
+  listing: PublicListing;
 }
 
 export function PremiumListingCard({ listing }: PremiumListingCardProps) {
   const { isFavorite, toggleFavorite } = useFavoritesStore();
+  const { lang, t } = useLanguage();
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
   const favorite = mounted && isFavorite(listing.id);
-  const slug = generateSlug(listing.name);
 
   return (
     <motion.div
@@ -36,9 +36,10 @@ export function PremiumListingCard({ listing }: PremiumListingCardProps) {
       className="group cursor-pointer h-full"
     >
       <div className="flex flex-col h-full">
-        {/* Image Container */}
+
+        {/* Image */}
         <div className="relative aspect-[4/3] rounded-3xl overflow-hidden mb-4">
-          <Link href={`/listing/${slug}`} className="block w-full h-full">
+          <Link href={`/listing/${listing.slug}`} className="relative block w-full h-full">
             <Image
               src={listing.image}
               alt={listing.name}
@@ -50,46 +51,39 @@ export function PremiumListingCard({ listing }: PremiumListingCardProps) {
             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-gradient-to-t from-[#1F2A2A]/80 via-[#1F2A2A]/20 to-transparent transition-opacity duration-300" />
           </Link>
 
-          {/* Verified Badge */}
+          {/* Verified badge */}
           {listing.verified && (
             <div className="absolute top-4 left-4 bg-[var(--primary)] text-[var(--primary-foreground)] px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-xs font-medium pointer-events-none">
               <RiShieldCheckLine className="w-3.5 h-3.5" />
-              Verified
+              {t("verified_partner")}
             </div>
           )}
 
-          {/* Rating Badge */}
+          {/* Rating badge */}
           <div className="absolute top-4 right-4 bg-[#1F2A2A]/60 backdrop-blur px-3 py-1.5 rounded-xl flex items-center gap-1 text-xs font-medium text-[#F8F1EA] pointer-events-none">
             <RiStarFill className="w-3.5 h-3.5 text-[#E8B923]" />
-            {listing.rating} ({listing.reviews})
+            {listing.rating > 0 ? listing.rating.toFixed(1) : NEW_LABEL[lang]}
+            {listing.reviewCount > 0 && (
+              <span className="text-[#F8F1EA]/70 ml-0.5">({listing.reviewCount})</span>
+            )}
           </div>
 
-          {/* Favorite Button — below the rating badge */}
+          {/* Favorite button */}
           <button
-            onClick={(e) => {
-              e.preventDefault();
-              toggleFavorite(listing);
-            }}
+            onClick={(e) => { e.preventDefault(); toggleFavorite(listing); }}
             className="absolute top-[52px] right-4 w-9 h-9 rounded-full bg-[#1F2A2A]/60 backdrop-blur flex items-center justify-center hover:bg-[#1F2A2A]/80 transition-all"
+            aria-label={favorite ? t("remove_from_favorites") : t("save_to_favourites")}
           >
             {favorite
               ? <RiHeartFill className="w-4 h-4 text-[var(--primary)]" />
               : <RiHeartLine className="w-4 h-4 text-[#F8F1EA]" />
             }
           </button>
-
-          {/* Hover Action Buttons */}
-          <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 flex gap-2 transition-opacity duration-300">
-            <button className="btn-primary flex-1 flex items-center justify-center gap-2 text-sm py-2">
-              <RiNavigationLine className="w-4 h-4" />
-              Directions
-            </button>
-          </div>
         </div>
 
-        {/* Card Content */}
+        {/* Card content */}
         <div className="flex-1 flex flex-col space-y-3">
-          <Link href={`/listing/${slug}`}>
+          <Link href={`/listing/${listing.slug}`}>
             <h3 className="text-lg font-semibold text-[var(--foreground)] hover:text-[var(--primary)] transition-colors line-clamp-1">
               {listing.name}
             </h3>
@@ -97,30 +91,26 @@ export function PremiumListingCard({ listing }: PremiumListingCardProps) {
 
           <div className="flex items-center gap-2 text-[var(--muted-foreground)]">
             <RiMapPinLine className="w-4 h-4 flex-shrink-0" />
-            <span className="text-sm">{listing.location}</span>
+            <span className="text-sm truncate">{listing.location}</span>
           </div>
 
-          {/* Tags */}
+          {/* Category + top amenities */}
           <div className="flex gap-2 flex-wrap">
-            <span className={`badge text-xs capitalize ${getCategoryBadgeClass(listing.category)}`}>
-              {listing.category.replace(/-/g, " ")}
+            <span className={`badge text-xs capitalize ${getCategoryBadgeClass(listing.mainCategory)}`}>
+              {t(`cat_${listing.mainCategory.replace(/-/g, "_")}` as Parameters<typeof t>[0]) || categoryLabels[listing.mainCategory]}
             </span>
-            {listing.tags.slice(0, 2).map((tag) => {
-              const Icon = amenityIcons[tag as keyof typeof amenityIcons];
-              return (
-                <span key={tag} className="badge text-xs flex items-center gap-1">
-                  {Icon && <Icon className="w-3 h-3 flex-none" />}
-                  {tag}
-                </span>
-              );
-            })}
+            {listing.amenities.slice(0, 2).map((amenity) => (
+              <span key={amenity} className="badge text-xs">{amenity}</span>
+            ))}
           </div>
 
           {/* Price + CTA */}
           <div className="flex justify-between items-center mt-auto pt-4 border-t border-[var(--border)]">
-            <span className="text-[var(--primary)] font-semibold text-sm">{listing.price}</span>
-            <Link href={`/listing/${slug}`} className="btn-primary text-sm py-1.5 px-4">
-              Book Now
+            <span className="text-[var(--primary)] font-semibold text-sm">
+              {listing.priceLabel ?? t("contact_for_price")}
+            </span>
+            <Link href={`/listing/${listing.slug}`} className="btn-primary text-sm py-1.5 px-4">
+              {t("book_now")}
             </Link>
           </div>
         </div>

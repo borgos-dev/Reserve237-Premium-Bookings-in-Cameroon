@@ -2,10 +2,15 @@
 
 import { useBrowseStore } from "@/stores";
 import { CuratedCollections } from "./CuratedCollections";
+import type { PublicListing } from "@/types/listing";
 
-export function ConditionalCuratedCollections() {
+interface Props {
+  listings: PublicListing[];
+}
+
+export function ConditionalCuratedCollections({ listings }: Props) {
   const { browseFilter, searchQuery } = useBrowseStore();
   const isFiltering = browseFilter !== "all" || searchQuery.trim() !== "";
   if (isFiltering) return null;
-  return <CuratedCollections />;
+  return <CuratedCollections listings={listings} />;
 }

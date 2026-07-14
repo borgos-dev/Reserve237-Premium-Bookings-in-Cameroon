@@ -11,13 +11,14 @@ import {
   RiStarFill,
 } from "react-icons/ri";
 import { useFavoritesStore } from "@/stores";
-import { generateSlug } from "@/lib/utils";
-import { getCategoryBadgeClass } from "@/lib/categoryColors";
+import { getCategoryBadgeClass, categoryLabels } from "@/lib/categoryColors";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { NewNavbar } from "@/components/homepage/NewNavbar";
 import { NewFooter } from "@/components/homepage/NewFooter";
 
 export default function FavoritesPage() {
   const { favorites, toggleFavorite, clearAll } = useFavoritesStore();
+  const { t } = useLanguage();
 
   return (
     <main className="bg-[var(--background)] text-[var(--foreground)] min-h-screen">
@@ -36,9 +37,9 @@ export default function FavoritesPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-12">
           <div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-2">My Favorites</h1>
+            <h1 className="text-4xl md:text-5xl font-bold mb-2">{t("my_favorites")}</h1>
             <p className="text-[var(--muted-foreground)]">
-              {favorites.length} saved listing{favorites.length !== 1 ? "s" : ""}
+              {favorites.length} {favorites.length !== 1 ? t("saved_listing_plural") : t("saved_listing_singular")}
             </p>
           </div>
           {favorites.length > 0 && (
@@ -47,7 +48,7 @@ export default function FavoritesPage() {
               className="btn-secondary text-sm flex items-center gap-2"
             >
               <RiDeleteBinLine className="w-4 h-4" />
-              Clear All
+              {t("clear_all")}
             </button>
           )}
         </div>
@@ -60,19 +61,19 @@ export default function FavoritesPage() {
             className="text-center py-32"
           >
             <RiHeartFill className="w-16 h-16 text-[var(--border)] mx-auto mb-6" />
-            <h2 className="text-2xl font-semibold mb-3">No favorites yet</h2>
+            <h2 className="text-2xl font-semibold mb-3">{t("no_favorites_title")}</h2>
             <p className="text-[var(--muted-foreground)] mb-8">
-              Start exploring and save listings you love
+              {t("no_favorites_subtitle")}
             </p>
             <Link href="/#browse" className="btn-primary">
-              Browse Listings
+              {t("browse_listings_btn")}
             </Link>
           </motion.div>
         ) : (
           /* Favorites Grid */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {favorites.map((listing, i) => {
-              const slug = generateSlug(listing.name);
+              const slug = listing.slug;
               return (
                 <motion.div
                   key={listing.id}
@@ -108,7 +109,7 @@ export default function FavoritesPage() {
                       <button
                         onClick={() => toggleFavorite(listing)}
                         className="flex-none p-1.5 rounded-xl hover:bg-[var(--destructive)]/10 text-[var(--muted-foreground)] hover:text-[var(--destructive)] transition-colors"
-                        title="Remove from favorites"
+                        title={t("remove_from_favorites")}
                       >
                         <RiDeleteBinLine className="w-4 h-4" />
                       </button>
@@ -120,26 +121,24 @@ export default function FavoritesPage() {
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <span
-                        className={`badge text-xs capitalize ${getCategoryBadgeClass(listing.category)}`}
-                      >
-                        {listing.category.replace(/-/g, " ")}
+                      <span className={`badge text-xs capitalize ${getCategoryBadgeClass(listing.mainCategory)}`}>
+                        {categoryLabels[listing.mainCategory] ?? listing.mainCategory}
                       </span>
                       <div className="flex items-center gap-1 text-sm">
                         <RiStarFill className="w-3.5 h-3.5 text-[#E8B923]" />
-                        <span className="font-medium">{listing.rating}</span>
+                        <span className="font-medium">{listing.rating > 0 ? listing.rating.toFixed(1) : "New"}</span>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between pt-3 border-t border-[var(--border)]">
                       <span className="text-[var(--primary)] font-semibold text-sm">
-                        {listing.price}
+                        {listing.priceLabel ?? t("contact_for_price")}
                       </span>
                       <Link
                         href={`/listing/${slug}`}
                         className="btn-primary text-xs py-1.5 px-3"
                       >
-                        View Details
+                        {t("view_details")}
                       </Link>
                     </div>
                   </div>
