@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useState, useEffect, useRef } from "react";
-import { useSignUp, useClerk } from "@clerk/nextjs";
+import { useSignUp } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -35,9 +35,10 @@ export default function SignUpPage() {
 }
 
 function SignUpContent() {
+  // Clerk v7 signals API: useSignUp() returns { signUp, errors, fetchStatus } —
+  // methods return { error } instead of throwing, and finalize() activates the session.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { signUp, isLoaded } = useSignUp() as any;
-  const { setActive } = useClerk();
+  const { signUp } = useSignUp() as any;
   const router = useRouter();
   const { lang, setLang, t } = useLanguage();
 
@@ -88,20 +89,28 @@ function SignUpContent() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!isLoaded || !signUp) return;
+    if (!signUp) return setError(t("err_auth_not_ready"));
     if (form.password.length < 8) return setError("Password must be at least 8 characters.");
     if (form.password !== form.confirm) return setError("Passwords do not match.");
 
     setLoading(true);
     setError("");
     try {
-      await signUp.create({
+      const { error: createError } = await signUp.create({
         firstName: form.firstName.trim(),
         emailAddress: form.email,
         password: form.password,
         ...(form.phone && { unsafeMetadata: { phone: form.phone } }),
       });
-      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+      if (createError) {
+        setError(createError.message ?? "Could not create account. Please try again.");
+        return;
+      }
+      const { error: sendError } = await signUp.verifications.sendEmailCode();
+      if (sendError) {
+        setError(sendError.message ?? "Could not send the verification code. Please try again.");
+        return;
+      }
       setStep("verify");
     } catch (err: unknown) {
       const e = err as { errors?: { message: string }[]; message?: string };
@@ -115,18 +124,22 @@ function SignUpContent() {
 
   async function handleVerify(e: React.FormEvent) {
     e.preventDefault();
-    if (!isLoaded || !signUp) return;
+    if (!signUp) return setError(t("err_auth_not_ready"));
 
     setLoading(true);
     setError("");
     try {
-      const result = await signUp.attemptEmailAddressVerification({ code });
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
-        router.push("/");
-      } else {
-        setError("Verification incomplete. Please try again.");
+      const { error: verifyError } = await signUp.verifications.verifyEmailCode({ code });
+      if (verifyError) {
+        setError(verifyError.message ?? "Invalid or expired code.");
+        return;
       }
+      const { error: finalizeError } = await signUp.finalize();
+      if (finalizeError) {
+        setError(finalizeError.message ?? "Verification incomplete. Please try again.");
+        return;
+      }
+      router.push("/");
     } catch (err: unknown) {
       const e = err as { errors?: { message: string }[]; message?: string };
       setError(e.errors?.[0]?.message ?? e.message ?? "Invalid or expired code.");
@@ -140,8 +153,9 @@ function SignUpContent() {
     setLoading(true);
     setError("");
     try {
-      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
-      setResendCooldown(60);
+      const { error: sendError } = await signUp.verifications.sendEmailCode();
+      if (sendError) setError(sendError.message ?? "Could not resend code.");
+      else setResendCooldown(60);
     } catch {
       setError("Could not resend code.");
     } finally {
@@ -270,7 +284,8 @@ function SignUpContent() {
                     </div>
                   </div>
 
-                  {/* Password */}
+                  {/* Password + confirm — side by side on wider screens */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-1.5">
                       {t("password")} <span className="text-red-500">*</span>
@@ -312,6 +327,7 @@ function SignUpContent() {
                         className="input-field pl-10 w-full"
                       />
                     </div>
+                  </div>
                   </div>
 
                   {/* Phone (optional) */}

@@ -144,7 +144,7 @@
 
   /* Input field */
   .input-field {
-    @apply w-full px-4 py-3 bg-[var(--input-background)] border border-[var(--border)] text-[var(--foreground)] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent transition-all;
+    @apply w-full px-4 py-2.5 bg-[var(--input-background)] border border-[var(--border)] text-[var(--foreground)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent transition-all;
   }
 
   /* Badge component */

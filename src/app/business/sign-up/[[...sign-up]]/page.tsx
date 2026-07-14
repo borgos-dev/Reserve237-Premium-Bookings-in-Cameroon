@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useSignUp, useClerk } from "@clerk/nextjs";
+import { useSignUp } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
@@ -192,9 +192,10 @@ const inputCls =
 
 export default function BusinessSignUpPage() {
   const { t, lang } = useLanguage();
+  // Clerk v7 signals API: methods return { error } instead of throwing,
+  // and finalize() activates the newly created session.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { signUp, isLoaded } = useSignUp() as any;
-  const { setActive } = useClerk();
+  const { signUp } = useSignUp() as any;
   const router = useRouter();
 
   const [step, setStep] = useState(1);
@@ -274,14 +275,14 @@ export default function BusinessSignUpPage() {
 
   async function handleCreateAccount(e: React.FormEvent) {
     e.preventDefault();
-    if (!isLoaded || !signUp) return;
+    if (!signUp) return setError(t("err_auth_not_ready"));
     if (account.password.length < 8) return setError(t("pw_too_short"));
     if (account.password !== account.confirm) return setError(t("pw_mismatch"));
 
     setLoading(true);
     clearError();
     try {
-      await signUp.create({
+      const { error: createError } = await signUp.create({
         emailAddress: account.email,
         password: account.password,
         unsafeMetadata: {
@@ -297,7 +298,15 @@ export default function BusinessSignUpPage() {
           whatsapp: samePhone ? biz.phone : biz.whatsapp,
         },
       });
-      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+      if (createError) {
+        setError(createError.message ?? t("bsu_err_create"));
+        return;
+      }
+      const { error: sendError } = await signUp.verifications.sendEmailCode();
+      if (sendError) {
+        setError(sendError.message ?? t("bsu_err_create"));
+        return;
+      }
       goNext();
     } catch (err: unknown) {
       const e = err as { errors?: { message: string }[]; message?: string };
@@ -309,20 +318,30 @@ export default function BusinessSignUpPage() {
 
   async function handleVerify(e: React.FormEvent) {
     e.preventDefault();
-    if (!isLoaded || !signUp) return;
+    if (!signUp) return setError(t("err_auth_not_ready"));
 
     setLoading(true);
     clearError();
     try {
-      const result = await signUp.attemptEmailAddressVerification({ code });
+      const { error: verifyError } = await signUp.verifications.verifyEmailCode({ code });
+      if (verifyError) {
+        setError(verifyError.message ?? t("bsu_err_invalid_code"));
+        return;
+      }
 
-      if (result.status === "complete") {
-        // Activate session first
-        await setActive({ session: result.createdSessionId });
+      // Activate the new session
+      const { error: finalizeError } = await signUp.finalize();
+      if (finalizeError) {
+        setError(t("bsu_err_verify_incomplete"));
+        return;
+      }
 
-        // Then save business profile to DB
+      const createdUserId: string | null = signUp.createdUserId;
+
+      // Then save business profile to DB
+      if (createdUserId) {
         await setupBusinessProfile({
-          userId: result.createdUserId!,
+          userId: createdUserId,
           email: account.email,
           name: biz.name,
           mainCategory: category,
@@ -334,11 +353,9 @@ export default function BusinessSignUpPage() {
           phone: biz.phone || undefined,
           whatsapp: (samePhone ? biz.phone : biz.whatsapp) || undefined,
         });
-
-        router.push("/dashboard");
-      } else {
-        setError(t("bsu_err_verify_incomplete"));
       }
+
+      router.push("/dashboard");
     } catch (err: unknown) {
       const e = err as { errors?: { message: string }[]; message?: string };
       setError(e.errors?.[0]?.message ?? e.message ?? t("bsu_err_invalid_code"));
@@ -352,8 +369,9 @@ export default function BusinessSignUpPage() {
     setLoading(true);
     clearError();
     try {
-      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
-      setResendCooldown(60); // 60-second cooldown after resend
+      const { error: sendError } = await signUp.verifications.sendEmailCode();
+      if (sendError) setError(t("bsu_err_resend"));
+      else setResendCooldown(60); // 60-second cooldown after resend
     } catch {
       setError(t("bsu_err_resend"));
     } finally {
