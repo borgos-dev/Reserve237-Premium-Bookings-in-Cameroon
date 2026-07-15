@@ -1431,4 +1431,23 @@ ALTER TABLE businesses
 - Page `metadata` exports (layout, business, listing pages) — would need locale-aware routing (e.g. next-intl) to translate; deferred.
 - Seeded listing descriptions/amenities in the DB are single-language (whatever the partner wrote) — by design.
 
+### 2026-07-15 — Session 23: Landing-page refinement pass 1 (with user, step by step)
+
+User-driven refinement loop: discuss → decide → build → user tests live. Decisions taken:
+- **Homepage stays curated** (shop window, not warehouse) — full catalog in browse/search only. Keeps "featured homepage placement" sellable per the monetisation plan (25k XAF/month).
+- **Platform owns all display vocabulary; partners own the facts.** Applied three times this session: amenities (checklist, not free text), prices (number in, formatted label out), services (name+price rows).
+
+**Shipped (all deployed):**
+1. `54bbb0c` — LogoWordmark component ("Reserve" dark serif + "237" gold) on light surfaces (navbar/auth/footer); PNG logo stays on dark surfaces. Icon swaps: accommodation → RiHotelBedLine, nightlife → RiGobletLine (in categoryColors.ts + business sign-up cards).
+2. `e32c82d` — Amenity checklist: `lib/amenityOptions.ts` (per-category FR/EN catalog, canonical values = amenityIcons keys, MAX 10), AmenityPicker chips in listing drawer (pre-ticked on edit), saved via create/update actions, returned by getPartnerListings. CuratedCollections now rating+reviewCount sorted; Top Picks = featured-flag first, filled to 3.
+3. `f51c546` — Price display: `lib/formatPrice.ts` — partners enter a number only; platform renders "45 000 XAF / nuit" (accommodation) or "À partir de 8 000 XAF" (others), FR/EN. Free-text priceLabel field REMOVED from drawer; stale labels cleared on next save; legacy bare-number labels ("8000") auto-parsed. Applied: homepage card, favorites, detail page (info card + booking rail), dashboard card.
+4. `524f26f` — "Services & prices" menu: rows {name, priceXaf} in details JSONB (max 15, sanitized server-side), ServicesEditor in drawer, menu card on public listing page between amenities and videos. Amenity chips on detail page now translated via amenityLabel().
+
+**Where we stopped / NEXT SESSION backlog (in priority order):**
+1. i18n gaps from Session 22 findings — hero headline/subtitle, CategorySwitcher pills, "Booking Details" + "Reviews" headings on listing page, favorites "Back to listings".
+2. Continue landing-page refinement walk (user reviews section by section).
+3. Demo-seed cleanup plan agreed: keep seeds while <10 real partners; real bookings on seed listings = leads (visible only in Supabase, no partner behind them); when ready: `DELETE FROM listings WHERE business_id IS NULL;`
+4. Video upload e2e still untested by a human (dashboard drawer → upload → thumbnail → public playback).
+5. `NEXT_PUBLIC_APP_URL` on Vercel still points at the wrong domain (`-cameroon` instead of `-came`) — fix or skip if buying real domain.
+
 ---
