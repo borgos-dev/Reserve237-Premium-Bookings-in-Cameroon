@@ -24,6 +24,7 @@ import {
 import { useFavoritesStore } from "@/stores";
 import { getCategoryBadgeClass, categoryLabels } from "@/lib/categoryColors";
 import { formatPriceLabel } from "@/lib/formatPrice";
+import { amenityLabel } from "@/lib/amenityOptions";
 import type { PublicListing } from "@/types/listing";
 import type { PublicReview } from "@/actions/reviews";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -259,7 +260,24 @@ const whatsappLink = listing.whatsapp
                 <h2 className="text-xl font-semibold mb-4">{t("amenities")}</h2>
                 <div className="flex flex-wrap gap-2">
                   {listing.amenities.map((amenity) => (
-                    <span key={amenity} className="badge text-sm py-2 px-3">{amenity}</span>
+                    <span key={amenity} className="badge text-sm py-2 px-3">{amenityLabel(amenity, lang)}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Services & prices — menu card filled in by the business */}
+            {listing.services.length > 0 && (
+              <div>
+                <h2 className="text-xl font-semibold mb-4">{t("services_prices")}</h2>
+                <div className="card divide-y divide-[var(--border)] p-0 overflow-hidden">
+                  {listing.services.map((service, i) => (
+                    <div key={i} className="flex items-baseline justify-between gap-4 px-5 py-3.5">
+                      <span className="text-sm font-medium">{service.name}</span>
+                      <span className="text-sm font-semibold text-[var(--primary)] whitespace-nowrap">
+                        {new Intl.NumberFormat(lang === "fr" ? "fr-FR" : "en-US").format(service.priceXaf)} XAF
+                      </span>
+                    </div>
                   ))}
                 </div>
               </div>

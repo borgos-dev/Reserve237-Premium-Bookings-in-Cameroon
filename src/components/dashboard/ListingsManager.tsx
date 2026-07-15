@@ -70,7 +70,11 @@ type PartnerListing = {
   image: string | null;  // primary image URL from Supabase Storage
   capacity: number | null;
   amenities: string[];
+  services: { name: string; priceXaf: number }[];
 };
+
+// Editable row in the "Services & prices" list (price kept as string while typing)
+type ServiceRow = { name: string; price: string };
 
 interface ListingsManagerProps {
   initialListings: PartnerListing[];
@@ -226,6 +230,84 @@ function AmenityPicker({
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// ─── Services & prices editor ──────────────────────────────────────────────────
+// Partners list what they offer with a price each (spa treatments, menu
+// highlights, day rates…). Shown as a menu card on the public listing page.
+
+function ServicesEditor({
+  rows,
+  onChange,
+}: {
+  rows: ServiceRow[];
+  onChange: (rows: ServiceRow[]) => void;
+}) {
+  const { t } = useLanguage();
+  const MAX_ROWS = 15;
+
+  function update(i: number, key: keyof ServiceRow, value: string) {
+    onChange(rows.map((r, idx) => (idx === i ? { ...r, [key]: value } : r)));
+  }
+
+  return (
+    <div>
+      <span className="text-xs uppercase tracking-wide text-[var(--muted-foreground)] block mb-1.5 font-medium">
+        {t("lm_services")}{" "}
+        <span className="normal-case tracking-normal text-[var(--text-tertiary)]">
+          {rows.length}/{MAX_ROWS}
+        </span>
+      </span>
+      <p className="text-xs text-[var(--text-tertiary)] mb-2">{t("lm_services_hint")}</p>
+
+      <div className="space-y-2">
+        {rows.map((row, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <input
+              type="text"
+              value={row.name}
+              onChange={(e) => update(i, "name", e.target.value)}
+              placeholder={t("lm_service_name_ph")}
+              maxLength={80}
+              className="input-field flex-1 min-w-0 text-sm"
+            />
+            <div className="relative w-36 shrink-0">
+              <input
+                type="number"
+                value={row.price}
+                onChange={(e) => update(i, "price", e.target.value)}
+                placeholder="15000"
+                min={0}
+                className="input-field w-full pr-12 text-sm"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--text-tertiary)] pointer-events-none">
+                XAF
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => onChange(rows.filter((_, idx) => idx !== i))}
+              className="p-2 rounded-lg text-[var(--muted-foreground)] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors shrink-0"
+              title={t("lm_service_remove")}
+            >
+              <RiDeleteBinLine className="w-4 h-4" />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {rows.length < MAX_ROWS && (
+        <button
+          type="button"
+          onClick={() => onChange([...rows, { name: "", price: "" }])}
+          className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--primary)] hover:text-[var(--cta-hover)] transition-colors"
+        >
+          <RiAddLine className="w-4 h-4" />
+          {t("lm_add_service")}
+        </button>
+      )}
     </div>
   );
 }
@@ -468,6 +550,7 @@ export function ListingsManager({ initialListings, userId, businessPlan }: Listi
   // Form state
   const [form, setForm] = useState(emptyForm);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
+  const [serviceRows, setServiceRows] = useState<ServiceRow[]>([]);
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [existingPhotos, setExistingPhotos] = useState<string[]>([]);
@@ -495,6 +578,7 @@ export function ListingsManager({ initialListings, userId, businessPlan }: Listi
     setEditTarget(null);
     setForm(emptyForm);
     setSelectedAmenities([]);
+    setServiceRows([]);
     setPhotoFiles([]);
     setPhotoPreviews([]);
     setExistingPhotos([]);
@@ -532,6 +616,9 @@ export function ListingsManager({ initialListings, userId, businessPlan }: Listi
       capacity: listing.capacity != null ? String(listing.capacity) : "",
     });
     setSelectedAmenities(listing.amenities ?? []);
+    setServiceRows(
+      (listing.services ?? []).map((s) => ({ name: s.name, price: String(s.priceXaf) }))
+    );
     setPhotoFiles([]);
     setPhotoPreviews([]);
     setRemovedPhotoUrls([]);
@@ -629,6 +716,9 @@ export function ListingsManager({ initialListings, userId, businessPlan }: Listi
       description: form.description || undefined,
       capacity: form.capacity ? Number(form.capacity) : undefined,
       amenities: selectedAmenities,
+      services: serviceRows
+        .map((r) => ({ name: r.name.trim(), priceXaf: Number(r.price) }))
+        .filter((s) => s.name && s.priceXaf > 0),
     };
 
     let result;
@@ -1058,6 +1148,9 @@ export function ListingsManager({ initialListings, userId, businessPlan }: Listi
                     )
                   }
                 />
+
+                {/* Services & prices — displayed as a menu card on the listing page */}
+                <ServicesEditor rows={serviceRows} onChange={setServiceRows} />
 
                 {/* Error */}
                 {formError && (

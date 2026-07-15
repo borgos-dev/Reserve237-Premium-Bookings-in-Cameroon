@@ -1,6 +1,13 @@
 // Shared public listing type used across all customer-facing pages.
 // Mapped from the Supabase DB — replaces the old mock Listing type.
 
+// A named service with its own price (spa treatments, menu highlights,
+// vehicle day-rates…) — displayed as a menu card on the listing page.
+export interface ListingService {
+  name: string
+  priceXaf: number
+}
+
 export interface PublicListing {
   id: string                    // UUID from DB
   name: string
@@ -23,4 +30,5 @@ export interface PublicListing {
   featured: boolean
   amenities: string[]
   capacity: number | null       // max guests per booking (from details JSONB)
+  services: ListingService[]    // priced services/menu items (from details JSONB)
 }

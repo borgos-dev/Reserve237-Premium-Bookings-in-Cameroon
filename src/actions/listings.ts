@@ -50,6 +50,35 @@ function capacityFromDetails(details: unknown): number | null {
   return typeof c === 'number' && c > 0 ? c : null
 }
 
+function servicesFromDetails(details: unknown): { name: string; priceXaf: number }[] {
+  const s = (details as { services?: unknown } | null)?.services
+  if (!Array.isArray(s)) return []
+  return s.filter(
+    (item): item is { name: string; priceXaf: number } =>
+      !!item && typeof item.name === 'string' && typeof item.priceXaf === 'number' && item.priceXaf > 0
+  )
+}
+
+// Max priced services per listing — keeps the menu card readable.
+const MAX_SERVICES = 15
+
+function sanitizeServices(services?: { name: string; priceXaf: number }[]) {
+  if (!services) return []
+  return services
+    .map((s) => ({ name: s.name.trim().slice(0, 80), priceXaf: Math.round(s.priceXaf) }))
+    .filter((s) => s.name.length > 0 && s.priceXaf > 0)
+    .slice(0, MAX_SERVICES)
+}
+
+// details JSONB carries capacity + services side by side
+function buildDetails(input: { capacity?: number; services?: { name: string; priceXaf: number }[] }) {
+  const services = sanitizeServices(input.services)
+  const details: Record<string, unknown> = {}
+  if (input.capacity) details.capacity = input.capacity
+  if (services.length > 0) details.services = services
+  return Object.keys(details).length > 0 ? details : null
+}
+
 async function uploadImageToStorage(file: File, folder: string): Promise<string | null> {
   const ext = file.name.split('.').pop() ?? 'jpg'
   const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
@@ -191,6 +220,7 @@ export async function getPublicListings(filters?: {
     featured: r.featured,
     amenities: amenityMap[r.id] ?? [],
     capacity: capacityFromDetails(r.details),
+    services: servicesFromDetails(r.details),
   }))
 }
 
@@ -254,6 +284,7 @@ export async function getPublicListingBySlug(slug: string): Promise<
     featured: listing.featured,
     amenities: amenities.map((a) => a.name),
     capacity: capacityFromDetails(listing.details),
+    services: servicesFromDetails(listing.details),
     description: listing.description,
     videos,
   }
@@ -314,6 +345,7 @@ export async function getListingsByIds(ids: string[]): Promise<PublicListing[]> 
     featured: r.featured,
     amenities: amenityMap[r.id] ?? [],
     capacity: capacityFromDetails(r.details),
+    services: servicesFromDetails(r.details),
   }))
 }
 
@@ -379,6 +411,7 @@ export async function getPartnerListings(userId: string) {
     ...r,
     image: imageMap[r.id] ?? null,  // null = no photo uploaded yet
     capacity: capacityFromDetails(r.details),
+    services: servicesFromDetails(r.details),
     amenities: amenityMap[r.id] ?? [],
   }))
 }
@@ -420,6 +453,7 @@ export interface CreateListingInput {
   description?: string
   capacity?: number
   amenities?: string[]
+  services?: { name: string; priceXaf: number }[]
 }
 
 // Platform-owned vocabulary: cap the count and drop empty/duplicate values.
@@ -457,7 +491,7 @@ export async function createListing(
         priceLabel: input.priceLabel ?? null,
         priceRange: input.priceRange ?? null,
         description: input.description ?? null,
-        details: input.capacity ? { capacity: input.capacity } : null,
+        details: buildDetails(input),
         active: true,
         verified: false,
         featured: false,
@@ -538,7 +572,7 @@ export async function updateListing(
         priceLabel: input.priceLabel ?? null,
         priceRange: input.priceRange ?? null,
         description: input.description ?? null,
-        details: input.capacity ? { capacity: input.capacity } : null,
+        details: buildDetails(input),
         updatedAt: new Date(),
       })
       .where(eq(listings.id, input.listingId))
