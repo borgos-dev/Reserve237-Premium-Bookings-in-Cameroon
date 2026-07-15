@@ -12,13 +12,14 @@ import {
 } from "react-icons/ri";
 import { useFavoritesStore } from "@/stores";
 import { getCategoryBadgeClass, categoryLabels } from "@/lib/categoryColors";
+import { formatPriceLabel } from "@/lib/formatPrice";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { NewNavbar } from "@/components/homepage/NewNavbar";
 import { NewFooter } from "@/components/homepage/NewFooter";
 
 export default function FavoritesPage() {
   const { favorites, toggleFavorite, clearAll } = useFavoritesStore();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
 
   return (
     <main className="bg-[var(--background)] text-[var(--foreground)] min-h-screen">
@@ -132,7 +133,7 @@ export default function FavoritesPage() {
 
                     <div className="flex items-center justify-between pt-3 border-t border-[var(--border)]">
                       <span className="text-[var(--primary)] font-semibold text-sm">
-                        {listing.priceLabel ?? t("contact_for_price")}
+                        {formatPriceLabel(listing.priceMin, listing.mainCategory, lang, listing.priceLabel) ?? t("contact_for_price")}
                       </span>
                       <Link
                         href={`/listing/${slug}`}

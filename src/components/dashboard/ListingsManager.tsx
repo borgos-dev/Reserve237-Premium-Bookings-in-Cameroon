@@ -38,6 +38,7 @@ import {
 } from "@/actions/listing-videos";
 import { VIDEO_LIMITS, MAX_VIDEO_FILE_SIZE_MB } from "@/lib/videoLimits";
 import { AMENITY_OPTIONS, MAX_AMENITIES } from "@/lib/amenityOptions";
+import { formatPriceLabel } from "@/lib/formatPrice";
 import { amenityIcons } from "@/lib/amenityIcons";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { TranslationKey } from "@/lib/translations";
@@ -622,7 +623,8 @@ export function ListingsManager({ initialListings, userId, businessPlan }: Listi
       phone: form.phone || undefined,
       whatsapp: form.whatsapp || undefined,
       priceMin: form.priceMin ? Number(form.priceMin) : undefined,
-      priceLabel: form.priceLabel || undefined,
+      // priceLabel is no longer collected — display labels are generated
+      // from priceMin + category (see lib/formatPrice.ts)
       priceRange: (form.priceRange as CreateListingInput["priceRange"]) || undefined,
       description: form.description || undefined,
       capacity: form.capacity ? Number(form.capacity) : undefined,
@@ -772,8 +774,10 @@ export function ListingsManager({ initialListings, userId, businessPlan }: Listi
                   </div>
                 </div>
 
-                {listing.priceLabel && (
-                  <p className="text-sm font-medium text-[var(--primary)]">{listing.priceLabel}</p>
+                {formatPriceLabel(listing.priceMin, listing.mainCategory, lang, listing.priceLabel) && (
+                  <p className="text-sm font-medium text-[var(--primary)]">
+                    {formatPriceLabel(listing.priceMin, listing.mainCategory, lang, listing.priceLabel)}
+                  </p>
                 )}
 
                 {/* Actions row */}
@@ -1007,25 +1011,15 @@ export function ListingsManager({ initialListings, userId, businessPlan }: Listi
                   </span>
                 </Field>
 
-                {/* Price */}
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label={t("lm_price_label")}>
-                    <input
-                      type="text"
-                      value={form.priceLabel}
-                      onChange={f("priceLabel")}
-                      placeholder={t("lm_price_label_ph")}
-                      className={inputCls}
-                    />
-                  </Field>
-                  <Field label={t("lm_price_range")}>
-                    <select value={form.priceRange} onChange={f("priceRange")} className={selectCls}>
-                      {PRICE_RANGES.map((r) => (
-                        <option key={r.value} value={r.value}>{t(r.label)}</option>
-                      ))}
-                    </select>
-                  </Field>
-                </div>
+                {/* Price range tier — the display label is generated automatically
+                    from the numeric price above (platform-formatted, FR/EN) */}
+                <Field label={t("lm_price_range")}>
+                  <select value={form.priceRange} onChange={f("priceRange")} className={selectCls}>
+                    {PRICE_RANGES.map((r) => (
+                      <option key={r.value} value={r.value}>{t(r.label)}</option>
+                    ))}
+                  </select>
+                </Field>
 
                 {/* Capacity */}
                 <Field label={t("lm_capacity")}>

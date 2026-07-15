@@ -23,6 +23,7 @@ import {
 } from "react-icons/ri";
 import { useFavoritesStore } from "@/stores";
 import { getCategoryBadgeClass, categoryLabels } from "@/lib/categoryColors";
+import { formatPriceLabel } from "@/lib/formatPrice";
 import type { PublicListing } from "@/types/listing";
 import type { PublicReview } from "@/actions/reviews";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -43,7 +44,7 @@ export function ListingDetailContent({ listing, reviews }: Props) {
   const { isFavorite, toggleFavorite } = useFavoritesStore();
   const [mounted, setMounted] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
   useEffect(() => { setMounted(true); }, []);
@@ -237,13 +238,15 @@ const whatsappLink = listing.whatsapp
                   <p className="text-[var(--muted-foreground)] text-sm mt-1">{listing.city}</p>
                 </div>
 
-                {listing.priceLabel && (
+                {formatPriceLabel(listing.priceMin, listing.mainCategory, lang, listing.priceLabel) && (
                   <div className="card p-5">
                     <div className="w-12 h-12 bg-[var(--primary)]/10 rounded-2xl flex items-center justify-center mb-4">
                       <RiMoneyDollarCircleLine className="w-6 h-6 text-[var(--primary)]" />
                     </div>
                     <p className="text-[var(--muted-foreground)] text-xs font-medium uppercase tracking-wide mb-1">Price</p>
-                    <p className="font-semibold text-base text-[var(--primary)]">{listing.priceLabel}</p>
+                    <p className="font-semibold text-base text-[var(--primary)]">
+                      {formatPriceLabel(listing.priceMin, listing.mainCategory, lang, listing.priceLabel)}
+                    </p>
                     {listing.priceRange && <p className="text-[var(--muted-foreground)] text-sm mt-1 capitalize">{listing.priceRange}</p>}
                   </div>
                 )}
@@ -374,7 +377,7 @@ const whatsappLink = listing.whatsapp
                 <div>
                   <p className="text-[var(--muted-foreground)] text-sm">{t("starting_from")}</p>
                   <p className="text-2xl font-bold text-[var(--primary)] mt-0.5">
-                    {listing.priceLabel ?? t("contact_for_price")}
+                    {formatPriceLabel(listing.priceMin, listing.mainCategory, lang, listing.priceLabel) ?? t("contact_for_price")}
                   </p>
                   {listing.priceRange && <span className="text-xs text-[var(--muted-foreground)] capitalize">{listing.priceRange}</span>}
                 </div>

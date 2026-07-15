@@ -14,6 +14,7 @@ import {
 import { useFavoritesStore } from "@/stores";
 import type { PublicListing } from "@/types/listing";
 import { getCategoryBadgeClass, categoryLabels } from "@/lib/categoryColors";
+import { formatPriceLabel } from "@/lib/formatPrice";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 const NEW_LABEL: Record<string, string> = { fr: "Nouveau", en: "New" };
@@ -107,7 +108,7 @@ export function PremiumListingCard({ listing }: PremiumListingCardProps) {
           {/* Price + CTA */}
           <div className="flex justify-between items-center mt-auto pt-4 border-t border-[var(--border)]">
             <span className="text-[var(--primary)] font-semibold text-sm">
-              {listing.priceLabel ?? t("contact_for_price")}
+              {formatPriceLabel(listing.priceMin, listing.mainCategory, lang, listing.priceLabel) ?? t("contact_for_price")}
             </span>
             <Link href={`/listing/${listing.slug}`} className="btn-primary text-sm py-1.5 px-4">
               {t("book_now")}
