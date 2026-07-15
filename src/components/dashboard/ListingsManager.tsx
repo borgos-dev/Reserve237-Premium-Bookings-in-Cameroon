@@ -37,6 +37,8 @@ import {
   type ListingVideoSummary,
 } from "@/actions/listing-videos";
 import { VIDEO_LIMITS, MAX_VIDEO_FILE_SIZE_MB } from "@/lib/videoLimits";
+import { AMENITY_OPTIONS, MAX_AMENITIES } from "@/lib/amenityOptions";
+import { amenityIcons } from "@/lib/amenityIcons";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { TranslationKey } from "@/lib/translations";
 
@@ -66,6 +68,7 @@ type PartnerListing = {
   createdAt: Date;
   image: string | null;  // primary image URL from Supabase Storage
   capacity: number | null;
+  amenities: string[];
 };
 
 interface ListingsManagerProps {
@@ -171,6 +174,60 @@ const emptyForm = {
 };
 
 // ─── Input component ──────────────────────────────────────────────────────────
+
+// ─── Amenity checklist ─────────────────────────────────────────────────────────
+// Platform-owned vocabulary (see amenityOptions.ts): partners tick what they
+// offer; values are canonical so filters, icons and FR/EN labels stay in sync.
+
+function AmenityPicker({
+  category,
+  selected,
+  onToggle,
+}: {
+  category: string;
+  selected: string[];
+  onToggle: (value: string) => void;
+}) {
+  const { t, lang } = useLanguage();
+  const options = AMENITY_OPTIONS[category] ?? [];
+  if (options.length === 0) return null;
+  const atLimit = selected.length >= MAX_AMENITIES;
+
+  return (
+    <div>
+      <span className="text-xs uppercase tracking-wide text-[var(--muted-foreground)] block mb-1.5 font-medium">
+        {t("lm_amenities")}{" "}
+        <span className="normal-case tracking-normal text-[var(--text-tertiary)]">
+          {selected.length}/{MAX_AMENITIES}
+        </span>
+      </span>
+      <p className="text-xs text-[var(--text-tertiary)] mb-2">{t("lm_amenities_hint")}</p>
+      <div className="flex flex-wrap gap-2">
+        {options.map((opt) => {
+          const isOn = selected.includes(opt.value);
+          const Icon = amenityIcons[opt.value];
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => onToggle(opt.value)}
+              disabled={!isOn && atLimit}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                isOn
+                  ? "bg-[var(--primary)] border-[var(--primary)] text-white"
+                  : "bg-[var(--surface-1)] border-[var(--border)] text-[var(--foreground)] hover:border-[var(--primary)]/50"
+              }`}
+            >
+              {Icon && <Icon className="w-3.5 h-3.5" />}
+              {lang === "fr" ? opt.fr : opt.en}
+              {isOn && <RiCheckLine className="w-3.5 h-3.5" />}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
@@ -409,6 +466,7 @@ export function ListingsManager({ initialListings, userId, businessPlan }: Listi
 
   // Form state
   const [form, setForm] = useState(emptyForm);
+  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [existingPhotos, setExistingPhotos] = useState<string[]>([]);
@@ -435,6 +493,7 @@ export function ListingsManager({ initialListings, userId, businessPlan }: Listi
   function openCreate() {
     setEditTarget(null);
     setForm(emptyForm);
+    setSelectedAmenities([]);
     setPhotoFiles([]);
     setPhotoPreviews([]);
     setExistingPhotos([]);
@@ -471,6 +530,7 @@ export function ListingsManager({ initialListings, userId, businessPlan }: Listi
       description: listing.description ?? "",
       capacity: listing.capacity != null ? String(listing.capacity) : "",
     });
+    setSelectedAmenities(listing.amenities ?? []);
     setPhotoFiles([]);
     setPhotoPreviews([]);
     setRemovedPhotoUrls([]);
@@ -566,6 +626,7 @@ export function ListingsManager({ initialListings, userId, businessPlan }: Listi
       priceRange: (form.priceRange as CreateListingInput["priceRange"]) || undefined,
       description: form.description || undefined,
       capacity: form.capacity ? Number(form.capacity) : undefined,
+      amenities: selectedAmenities,
     };
 
     let result;
@@ -988,6 +1049,21 @@ export function ListingsManager({ initialListings, userId, businessPlan }: Listi
                     className={`${inputCls} resize-none`}
                   />
                 </Field>
+
+                {/* Amenities checklist — options follow the selected category */}
+                <AmenityPicker
+                  category={form.mainCategory}
+                  selected={selectedAmenities}
+                  onToggle={(value) =>
+                    setSelectedAmenities((prev) =>
+                      prev.includes(value)
+                        ? prev.filter((v) => v !== value)
+                        : prev.length < MAX_AMENITIES
+                        ? [...prev, value]
+                        : prev
+                    )
+                  }
+                />
 
                 {/* Error */}
                 {formError && (

@@ -14,11 +14,24 @@ export function CuratedCollections({ listings }: Props) {
   const { t } = useLanguage();
   // Build collections dynamically from real DB listings
   const collections = useMemo(() => {
-    const featured = listings.filter((l) => l.featured).slice(0, 3);
-    const yaounde = listings.filter((l) => l.city === "Yaounde").slice(0, 3);
-    const douala = listings.filter((l) => l.city === "Douala").slice(0, 3);
-    const verified = listings.filter((l) => l.verified).slice(0, 3);
-    const accommodation = listings
+    // Highest rating first, review count as tiebreaker — the homepage is a
+    // curated shop window, so every collection leads with its best listings.
+    const byRating = [...listings].sort((a, b) => {
+      if (b.rating !== a.rating) return b.rating - a.rating;
+      return (b.reviewCount ?? 0) - (a.reviewCount ?? 0);
+    });
+
+    // Top Picks: hand-picked (featured flag) first, then best-rated fill —
+    // so the section always exists, and "featured" placement stays sellable.
+    const featuredFirst = [
+      ...byRating.filter((l) => l.featured),
+      ...byRating.filter((l) => !l.featured),
+    ];
+    const featured = featuredFirst.slice(0, 3);
+    const yaounde = byRating.filter((l) => l.city === "Yaounde").slice(0, 3);
+    const douala = byRating.filter((l) => l.city === "Douala").slice(0, 3);
+    const verified = byRating.filter((l) => l.verified).slice(0, 3);
+    const accommodation = byRating
       .filter((l) => l.mainCategory === "accommodation")
       .slice(0, 3);
 

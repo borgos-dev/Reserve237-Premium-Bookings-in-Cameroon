@@ -364,10 +364,22 @@ export async function getPartnerListings(userId: string) {
 
   const imageMap = Object.fromEntries(primaryImages.map((i) => [i.listingId, i.url]))
 
+  // Batch-fetch amenities so the edit drawer can pre-tick the checklist
+  const amenityRows = await db
+    .select({ listingId: listingAmenities.listingId, name: listingAmenities.name })
+    .from(listingAmenities)
+    .where(inArray(listingAmenities.listingId, ids))
+
+  const amenityMap: Record<string, string[]> = {}
+  for (const a of amenityRows) {
+    ;(amenityMap[a.listingId] ??= []).push(a.name)
+  }
+
   return rows.map((r) => ({
     ...r,
     image: imageMap[r.id] ?? null,  // null = no photo uploaded yet
     capacity: capacityFromDetails(r.details),
+    amenities: amenityMap[r.id] ?? [],
   }))
 }
 
@@ -407,6 +419,13 @@ export interface CreateListingInput {
   priceRange?: 'budget' | 'mid-range' | 'premium' | 'luxury'
   description?: string
   capacity?: number
+  amenities?: string[]
+}
+
+// Platform-owned vocabulary: cap the count and drop empty/duplicate values.
+function sanitizeAmenities(amenities?: string[]): string[] {
+  if (!amenities) return []
+  return [...new Set(amenities.map((a) => a.trim()).filter(Boolean))].slice(0, 10)
 }
 
 export type ListingActionResult =
@@ -444,6 +463,14 @@ export async function createListing(
         featured: false,
       })
       .returning({ id: listings.id, slug: listings.slug })
+
+    // Save amenities (checklist values chosen by the partner)
+    const amenityNames = sanitizeAmenities(input.amenities)
+    if (amenityNames.length > 0) {
+      await db.insert(listingAmenities).values(
+        amenityNames.map((name) => ({ listingId: listing.id, name }))
+      )
+    }
 
     // Upload images
     const files = imageFiles.getAll('images') as File[]
@@ -515,6 +542,15 @@ export async function updateListing(
         updatedAt: new Date(),
       })
       .where(eq(listings.id, input.listingId))
+
+    // Replace amenities with the submitted set (checklist is the source of truth)
+    await db.delete(listingAmenities).where(eq(listingAmenities.listingId, input.listingId))
+    const amenityNames = sanitizeAmenities(input.amenities)
+    if (amenityNames.length > 0) {
+      await db.insert(listingAmenities).values(
+        amenityNames.map((name) => ({ listingId: input.listingId, name }))
+      )
+    }
 
     // Remove specific photos the user deleted (per-photo, not destructive replace-all)
     if (input.removeImageUrls && input.removeImageUrls.length > 0) {

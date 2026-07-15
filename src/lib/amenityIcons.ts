@@ -7,7 +7,6 @@ import {
   RiCupLine,
   RiGobletLine,
   RiRestaurantLine,
-  RiRunLine,
   RiLeafLine,
   RiPlantLine,
   RiSunLine,
@@ -17,11 +16,16 @@ import {
   RiSlideshowLine,
   RiBuildingLine,
   RiHeartPulseLine,
+  RiFlashlightLine,
+  RiShieldCheckLine,
+  RiVipCrownLine,
+  RiEBike2Line,
+  RiShoppingBag3Line,
 } from "react-icons/ri";
-import type { Amenity } from "@/data/listings";
 import type { ElementType } from "react";
 
-export const amenityIcons: Record<Amenity, ElementType> = {
+// Canonical amenity names (see amenityOptions.ts) → icons.
+export const amenityIcons: Record<string, ElementType> = {
   "Live Music":      RiMusic2Line,
   "WiFi":            RiWifiLine,
   "AC":              RiWindyLine,
@@ -40,4 +44,11 @@ export const amenityIcons: Record<Amenity, ElementType> = {
   "Sound System":    RiVolumeUpLine,
   "Projector":       RiSlideshowLine,
   "Stage":           RiMicLine,
+  "Generator":       RiFlashlightLine,
+  "Security":        RiShieldCheckLine,
+  "VIP Tables":      RiVipCrownLine,
+  "Dance Floor":     RiMusic2Line,
+  "Delivery":        RiEBike2Line,
+  "Takeaway":        RiShoppingBag3Line,
+  "Breakfast":       RiCupLine,
 };
