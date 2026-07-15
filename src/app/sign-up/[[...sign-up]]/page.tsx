@@ -365,6 +365,9 @@ function SignUpContent() {
                     </Link>.
                   </p>
 
+                  {/* Clerk bot-protection (Turnstile) mounts here — required for custom sign-up flows */}
+                  <div id="clerk-captcha" className="empty:hidden" />
+
                   <button
                     type="submit"
                     disabled={loading || !form.firstName || !form.email || !form.password || !form.confirm}

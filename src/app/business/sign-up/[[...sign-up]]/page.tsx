@@ -793,6 +793,9 @@ export default function BusinessSignUpPage() {
 
                   {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 
+                  {/* Clerk bot-protection (Turnstile) mounts here — required for custom sign-up flows */}
+                  <div id="clerk-captcha" className="empty:hidden" />
+
                   <div className="flex gap-3">
                     <button
                       type="button"
