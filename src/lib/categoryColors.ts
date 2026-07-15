@@ -1,9 +1,9 @@
 import {
   RiRestaurantLine,
-  RiMoonLine,
+  RiGobletLine,
   RiScissorsLine,
   RiCalendarEventLine,
-  RiBuildingLine,
+  RiHotelBedLine,
   RiCarLine,
 } from "react-icons/ri";
 import type { ElementType } from "react";
@@ -65,10 +65,10 @@ export const categoryColors: Record<string, CategoryColorSet> = {
 
 export const categoryIcons: Record<string, ElementType> = {
   "food-drinks":      RiRestaurantLine,
-  nightlife:          RiMoonLine,
+  nightlife:          RiGobletLine,
   "beauty-wellness":  RiScissorsLine,
   "events-venues":    RiCalendarEventLine,
-  accommodation:      RiBuildingLine,
+  accommodation:      RiHotelBedLine,
   "transport-more":   RiCarLine,
 };
 

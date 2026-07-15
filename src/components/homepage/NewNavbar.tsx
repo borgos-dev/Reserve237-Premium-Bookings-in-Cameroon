@@ -14,6 +14,7 @@ import {
 } from "react-icons/ri";
 import { FaHeart } from "react-icons/fa";
 import Link from "next/link";
+import { LogoWordmark } from "@/components/LogoWordmark";
 import { useFavoritesStore } from "@/stores";
 import { useLanguage } from "@/contexts/LanguageContext";
 import {
@@ -62,21 +63,20 @@ export function NewNavbar() {
         <div className="h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center flex-shrink-0" onClick={() => setMobileMenuOpen(false)}>
-            <motion.img
-              src="/Reserve237-logo.png"
-              alt="Reserve237"
-              className="h-12 sm:h-20 md:h-24 w-auto max-w-[110px] sm:max-w-[170px] md:max-w-[200px] object-contain drop-shadow-[0_2px_8px_rgba(31,42,42,0.3)]"
-              initial={{ opacity: 0, scale: 0.5, rotate: -12, y: -8 }}
-              animate={{ opacity: 1, scale: 1, rotate: 0, y: 0 }}
+            <motion.span
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{
                 type: "spring",
                 stiffness: 190,
                 damping: 14,
                 delay: 0.15,
               }}
-              whileHover={{ scale: 1.06, rotate: -2 }}
-              draggable={false}
-            />
+              whileHover={{ scale: 1.04 }}
+              className="inline-flex"
+            >
+              <LogoWordmark size="text-xl sm:text-2xl md:text-[1.7rem]" />
+            </motion.span>
           </Link>
 
           {/* Desktop Nav Links */}

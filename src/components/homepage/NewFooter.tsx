@@ -3,6 +3,7 @@
 import { motion } from "motion/react";
 import { RiFacebookFill, RiInstagramLine, RiTwitterXLine, RiLinkedinFill } from "react-icons/ri";
 import Link from "next/link";
+import { LogoWordmark } from "@/components/LogoWordmark";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { TranslationKey } from "@/lib/translations";
 
@@ -34,7 +35,7 @@ export function NewFooter() {
             transition={{ duration: 0.6 }}
           >
             <div className="flex items-center mb-4">
-              <img src="/Reserve237-logo.png" alt="Reserve237" className="h-24 sm:h-28 w-auto max-w-[220px] object-contain" />
+              <LogoWordmark size="text-2xl sm:text-3xl" />
             </div>
             <p className="text-[var(--muted-foreground)] text-sm mb-6">
               {t("footer_tagline")}
