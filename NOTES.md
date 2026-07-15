@@ -1410,6 +1410,19 @@ ALTER TABLE businesses
 - Homepage, listing detail, booking, business sign-in, business landing, favorites: `scrollWidth === clientWidth === 390` on all — zero horizontal overflow, layouts stack correctly.
 - Gotcha for future checks: plain `chrome --headless --window-size=390,...` is WRONG — headless Chrome clamps window width to 500px minimum. Must use CDP `Emulation.setDeviceMetricsOverride` (script: scratchpad mobile-shots.mjs pattern).
 
+### 2026-07-15 — Session 22: Sign-up was dead — Clerk v7 signals migration + deploy
+
+**Deployed to production:** Supabase restored → env vars imported to Vercel → live at https://reserve237-premium-bookings-in-came.vercel.app (note: Vercel truncated the domain — it's `-came`, not `-cameroon`; `NEXT_PUBLIC_APP_URL` on Vercel should be updated to match). GitHub remote moved to borgos-dev account.
+
+**Critical bug found & fixed — BOTH sign-up pages were completely dead:**
+- Root cause: Clerk v7's `useSignUp()` returns `{ signUp, errors, fetchStatus }` — NO `isLoaded`. Both pages guarded with `if (!isLoaded || !signUp) return;` → `isLoaded` was always `undefined` → every submit silently early-returned. No error, no network call, button did nothing.
+- Migrated both sign-up pages to the signals contract (mirroring the working sign-in pages): `create()`/`verifications.sendEmailCode()`/`verifications.verifyEmailCode({code})` return `{ error }` (never throw); `finalize()` activates the session (replaces `setActive`); `signUp.createdUserId` read after finalize for `setupBusinessProfile`.
+- Second blocker surfaced after that fix: "CAPTCHA failed to load" — Clerk bot protection needs a `<div id="clerk-captcha" />` mount in custom flows. Added to both sign-up forms (before submit button, `empty:hidden`).
+- Verified live via CDP browser automation: form fills → submit → Turnstile "Verify you are human" widget renders correctly and gates account creation (automation stops there by design; human click proceeds).
+- UI: password + confirm now side-by-side on sm+; `.input-field` slimmed (py-2.5, rounded-xl) — user found inputs too bulky.
+- **Debug lesson:** Clerk sign-IN pages were already on the signals pattern and fine. If an auth button "does nothing" with zero console errors, check for stale `isLoaded` destructuring first.
+- Test emails: `*+clerk_test@example.com` with code 424242 works on dev instances.
+
 **New findings (not yet fixed):**
 1. i18n gaps found in screenshots: homepage hero headline + subtitle + CategorySwitcher pills ("Dining & Nightlife", "Stays", "Event Spaces") are English-only; listing page "Booking Details" + "Reviews" headings English; favorites "Back to listings" English. All on FR-default views.
 2. Logo nearly invisible on light navbar (white logo designed for dark backgrounds) — needs a dark logo variant for light surfaces, or a subtle dark chip behind it.
