@@ -23,6 +23,23 @@ export async function getOrCreateBusiness(userId: string) {
       ? `${user.firstName} ${user.lastName}`
       : user?.firstName ?? 'My Business'
 
+  // Ensure the users row exists first (businesses.owner_id FK requires it).
+  // Heals accounts whose DB rows were lost (e.g. after a database restore)
+  // while their Clerk login still exists.
+  await db
+    .insert(users)
+    .values({
+      id: userId,
+      email: user?.emailAddresses[0]?.emailAddress ?? '',
+      firstName: user?.firstName ?? null,
+      lastName: user?.lastName ?? null,
+      role: 'partner',
+    })
+    .onConflictDoUpdate({
+      target: users.id,
+      set: { role: 'partner', updatedAt: new Date() },
+    })
+
   const [created] = await db
     .insert(businesses)
     .values({
