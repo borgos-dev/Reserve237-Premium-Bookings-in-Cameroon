@@ -318,13 +318,16 @@ export default function BusinessSignUpPage() {
 
   async function handleVerify(e: React.FormEvent) {
     e.preventDefault();
-    if (!signUp) return setError(t("err_auth_not_ready"));
+    if (!signUp || loading) return;
 
     setLoading(true);
     clearError();
     try {
       const { error: verifyError } = await signUp.verifications.verifyEmailCode({ code });
-      if (verifyError) {
+      // A code already consumed by an earlier successful attempt (e.g. a double-click,
+      // or a retry after finalize() failed) just means the email is verified — proceed.
+      const alreadyVerified = /already.*verifi/i.test(verifyError?.message ?? "");
+      if (verifyError && !alreadyVerified) {
         setError(verifyError.message ?? t("bsu_err_invalid_code"));
         return;
       }
