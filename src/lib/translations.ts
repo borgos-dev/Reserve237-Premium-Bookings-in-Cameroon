@@ -740,6 +740,9 @@ export const translations = {
     for_query: "pour",
     all_cities: "Toutes les villes",
     filter_city: "Ville",
+    in_city: "à",
+    other_cities_title: "Aussi disponible dans d'autres villes",
+    other_cities_sub: "Des adresses similaires ailleurs au Cameroun",
 
     // ── Listing detail (gaps) ────────────────────────────────────────────────
     rating_new: "Nouveau",
@@ -1536,6 +1539,9 @@ export const translations = {
     for_query: "for",
     all_cities: "All cities",
     filter_city: "City",
+    in_city: "in",
+    other_cities_title: "Also available in other cities",
+    other_cities_sub: "Similar places elsewhere in Cameroon",
 
     // ── Listing detail (gaps) ────────────────────────────────────────────────
     rating_new: "New",

@@ -38,10 +38,12 @@ export function SearchFilterSection({ listings }: SearchFilterSectionProps) {
 
   const isFiltering = browseFilter !== "all" || searchQuery.trim() !== "" || cityFilter !== "all";
 
-  const filtered = useMemo(() => {
-    if (!isFiltering) return [];
+  // City-first results: everything in the chosen city shows first; matches
+  // from other cities appear below as suggestions only, never mixed in.
+  const { cityMatches, otherCitySuggestions } = useMemo(() => {
+    if (!isFiltering) return { cityMatches: [], otherCitySuggestions: [] };
     const q = searchQuery.toLowerCase().trim();
-    return listings.filter((listing) => {
+    const base = listings.filter((listing) => {
       const matchesQuery =
         q === "" ||
         listing.name.toLowerCase().includes(q) ||
@@ -51,9 +53,19 @@ export function SearchFilterSection({ listings }: SearchFilterSectionProps) {
         listing.amenities.some((a) => a.toLowerCase().includes(q));
       const matchesCategory =
         browseFilter === "all" || listing.mainCategory === browseFilter;
-      const matchesCity = cityFilter === "all" || listing.city === cityFilter;
-      return matchesQuery && matchesCategory && matchesCity;
+      return matchesQuery && matchesCategory;
     });
+    if (cityFilter === "all") return { cityMatches: base, otherCitySuggestions: [] };
+    const elsewhere = base
+      .filter((l) => l.city !== cityFilter)
+      .sort((a, b) =>
+        b.rating !== a.rating ? b.rating - a.rating : (b.reviewCount ?? 0) - (a.reviewCount ?? 0)
+      )
+      .slice(0, 6);
+    return {
+      cityMatches: base.filter((l) => l.city === cityFilter),
+      otherCitySuggestions: elsewhere,
+    };
   }, [searchQuery, browseFilter, cityFilter, isFiltering, listings]);
 
   return (
@@ -158,7 +170,7 @@ export function SearchFilterSection({ listings }: SearchFilterSectionProps) {
               className="mt-10"
             >
               <p className="text-[var(--muted-foreground)] text-sm mb-8">
-                {filtered.length} {filtered.length !== 1 ? t("listings_found_plural") : t("listings_found_singular")}
+                {cityMatches.length} {cityMatches.length !== 1 ? t("listings_found_plural") : t("listings_found_singular")}
                 {browseFilter !== "all" && (
                   <span className="ml-2">
                     {t("in_category")} <strong className="capitalize">
@@ -168,7 +180,7 @@ export function SearchFilterSection({ listings }: SearchFilterSectionProps) {
                 )}
                 {cityFilter !== "all" && (
                   <span className="ml-1">
-                    {t("in_category")} <strong>{cityFilter}</strong>
+                    {t("in_city")} <strong>{cityFilter}</strong>
                   </span>
                 )}
                 {searchQuery && (
@@ -176,9 +188,9 @@ export function SearchFilterSection({ listings }: SearchFilterSectionProps) {
                 )}
               </p>
 
-              {filtered.length > 0 ? (
+              {cityMatches.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {filtered.map((listing, i) => (
+                  {cityMatches.map((listing, i) => (
                     <motion.div
                       key={listing.id}
                       initial={{ opacity: 0, y: 20 }}
@@ -192,7 +204,9 @@ export function SearchFilterSection({ listings }: SearchFilterSectionProps) {
               ) : (
                 <div className="text-center py-24">
                   <p className="text-[var(--muted-foreground)] text-lg mb-6">
-                    {t("no_listings_found")}{searchQuery ? ` ${t("for_query")} "${searchQuery}"` : ""}.
+                    {t("no_listings_found")}
+                    {cityFilter !== "all" ? ` ${t("in_city")} ${cityFilter}` : ""}
+                    {searchQuery ? ` ${t("for_query")} "${searchQuery}"` : ""}.
                   </p>
                   <button
                     onClick={() => { setSearchQuery(""); setBrowseFilter("all"); setCityFilter("all"); }}
@@ -200,6 +214,29 @@ export function SearchFilterSection({ listings }: SearchFilterSectionProps) {
                   >
                     {t("clear_filters")}
                   </button>
+                </div>
+              )}
+
+              {/* Suggestions from other cities — always AFTER everything in the
+                  chosen city, clearly separated, never mixed into the results */}
+              {otherCitySuggestions.length > 0 && (
+                <div className="mt-16 pt-10 border-t border-[var(--border)]">
+                  <div className="mb-6">
+                    <h3 className="text-xl font-semibold">{t("other_cities_title")}</h3>
+                    <p className="text-[var(--muted-foreground)] text-sm mt-1">{t("other_cities_sub")}</p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {otherCitySuggestions.map((listing, i) => (
+                      <motion.div
+                        key={listing.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.04, duration: 0.4 }}
+                      >
+                        <PremiumListingCard listing={listing} />
+                      </motion.div>
+                    ))}
+                  </div>
                 </div>
               )}
             </motion.div>
