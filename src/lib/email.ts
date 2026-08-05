@@ -326,8 +326,10 @@ export async function sendBookingEmails(data: BookingEmailData): Promise<void> {
     body: lines(
       `Bonjour ${data.customerName},`,
       '',
+      // Promises only what is actually configured. Add "et un SMS" / "and text"
+      // back here the day SMS_PROVIDER is set — see src/lib/sms.ts.
       `Votre demande a bien été transmise à ${data.listingName}. ` +
-        `L'établissement vous répondra pour confirmer ou refuser — vous recevrez un email et un SMS dès sa réponse.`,
+        `L'établissement vous répondra pour confirmer ou refuser — vous recevrez un email dès sa réponse.`,
       '',
       details,
       '',
@@ -336,7 +338,7 @@ export async function sendBookingEmails(data: BookingEmailData): Promise<void> {
       '— — —',
       '',
       `Hello ${data.customerName}, your request has been passed to ${data.listingName}. ` +
-        `The venue will confirm or decline it, and we'll email and text you the moment it answers.`,
+        `The venue will confirm or decline it, and we'll email you the moment it answers.`,
       `Track or cancel your booking: ${APP_URL}/booking`,
       '',
       'Reserve237',

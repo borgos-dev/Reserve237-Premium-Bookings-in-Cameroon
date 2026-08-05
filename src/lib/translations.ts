@@ -585,7 +585,7 @@ export const translations = {
     res_no_actions: "Aucune action supplémentaire disponible pour cette réservation.",
     pay_card: "Carte",
     res_whatsapp_client: "Écrire au client sur WhatsApp",
-    res_client_notified: "Le client sera prévenu automatiquement par e-mail et SMS.",
+    res_client_notified: "Le client sera prévenu automatiquement par e-mail.",
     res_decline_title: "Refuser cette réservation ?",
     res_decline_body:
       "Le client sera prévenu immédiatement. Indiquez brièvement pourquoi — sans motif, il ne saura pas quoi faire ensuite.",
@@ -1466,7 +1466,7 @@ export const translations = {
     res_no_actions: "No further actions available for this booking.",
     pay_card: "Card",
     res_whatsapp_client: "Message client on WhatsApp",
-    res_client_notified: "The client is notified automatically by email and SMS.",
+    res_client_notified: "The client is notified automatically by email.",
     res_decline_title: "Decline this booking?",
     res_decline_body:
       "The client is told straight away. Add a short reason — without one they won't know what to do next.",
