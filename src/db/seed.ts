@@ -64,9 +64,11 @@ async function seed() {
         priceLabel: listing.price,
         priceMin: extractPriceMin(listing.price) ?? null,
         priceRange: listing.priceRange ?? null,
-        rating: listing.rating.toString(),
-        reviewCount: listing.reviews,
-        verified: listing.verified,
+        // Trust signals are earned, never seeded: ratings/review counts come
+        // only from real reviews, and `verified` only from a real verification.
+        rating: '0',
+        reviewCount: 0,
+        verified: false,
         featured: listing.featured ?? false,
         active: true,
       })
