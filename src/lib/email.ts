@@ -50,11 +50,25 @@ export interface Mail {
 export async function sendMail(mail: Mail): Promise<boolean> {
   const serviceId = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID
   const publicKey = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY
+  // `||`, not `??` — an unset var in .env.local arrives as "" rather than
+  // undefined, and `??` would happily hand an empty template ID downstream.
   const templateId =
-    process.env.EMAILJS_TEMPLATE_NOTIFY ?? process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID
+    process.env.EMAILJS_TEMPLATE_NOTIFY || process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID
   const privateKey = process.env.EMAILJS_PRIVATE_KEY
 
-  if (!serviceId || !publicKey || !templateId || !mail.to) return false
+  const missing = [
+    !serviceId && 'NEXT_PUBLIC_EMAILJS_SERVICE_ID',
+    !publicKey && 'NEXT_PUBLIC_EMAILJS_PUBLIC_KEY',
+    !templateId && 'EMAILJS_TEMPLATE_NOTIFY or NEXT_PUBLIC_EMAILJS_TEMPLATE_ID',
+    !mail.to && 'recipient address',
+  ].filter(Boolean)
+
+  if (missing.length) {
+    // Say why. Returning a bare false here is what hid the fact that this
+    // platform had never delivered a single booking email.
+    console.error('[email] Not sent — missing:', missing.join(', '))
+    return false
+  }
 
   try {
     const res = await fetch(EMAILJS_API, {

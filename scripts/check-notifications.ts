@@ -25,7 +25,12 @@ async function main() {
   console.log('\nConfiguration')
   const cfg: [string, string | undefined][] = [
     ['EMAILJS service', process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID],
-    ['EMAILJS template', process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID],
+    // The resolved value, not either candidate — an empty override reads as
+    // "set" on its own and would hide exactly the failure this tool exists for.
+    [
+      'EMAILJS template',
+      process.env.EMAILJS_TEMPLATE_NOTIFY || process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID,
+    ],
     ['EMAILJS public key', process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY],
     ['EMAILJS private key', process.env.EMAILJS_PRIVATE_KEY],
     ['Team inbox', process.env.TEAM_INBOX_EMAIL ?? process.env.NEXT_PUBLIC_TEAM_EMAIL],
