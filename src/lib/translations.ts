@@ -725,6 +725,79 @@ export const translations = {
     set_delete_failed: "Échec de la suppression du compte.",
     set_delete_clerk_failed:
       "Données supprimées mais la suppression du compte a échoué. Contactez le support.",
+
+    // ── Hero ─────────────────────────────────────────────────────────────────
+    hero_title_1: "Vivez le meilleur",
+    hero_title_2: "de votre ville",
+    hero_subtitle:
+      "De la vie nocturne animée aux séjours paisibles — des expériences sélectionnées partout au Cameroun",
+    switcher_nightlife: "Restauration & Vie nocturne",
+    switcher_stays: "Séjours",
+    switcher_events: "Salles d'événements",
+    hero_search_button: "Rechercher",
+
+    // ── Search & filters ─────────────────────────────────────────────────────
+    for_query: "pour",
+    all_cities: "Toutes les villes",
+    filter_city: "Ville",
+
+    // ── Listing detail (gaps) ────────────────────────────────────────────────
+    rating_new: "Nouveau",
+    reviews_word: "avis",
+    cancellation_policy: "Politique d'annulation",
+
+    // ── Navbar (aria) ────────────────────────────────────────────────────────
+    menu_open: "Ouvrir le menu",
+    menu_close: "Fermer le menu",
+
+    // ── Footer ───────────────────────────────────────────────────────────────
+    footer_partner_signin: "Connexion partenaire",
+
+    // ── About page ───────────────────────────────────────────────────────────
+    about_title: "À propos de Reserve237",
+    about_intro:
+      "Reserve237 est la plateforme camerounaise de réservation multi-catégories : restaurants, vie nocturne, hébergements, salles d'événements, beauté & bien-être — le tout au même endroit, en FCFA, pensé pour le Cameroun.",
+    about_s1_title: "Notre mission",
+    about_s1_body:
+      "Rendre la réservation aussi simple à Yaoundé et Douala qu'elle l'est partout ailleurs dans le monde — avec les moyens de paiement que les Camerounais utilisent vraiment (MTN MoMo, Orange Money) et les canaux qu'ils préfèrent (WhatsApp).",
+    about_s2_title: "Ce que nous faisons",
+    about_s2_body:
+      "Nous connectons les clients aux meilleurs établissements du Cameroun : tables de restaurant, lounges et vie nocturne, hôtels et résidences, salles d'événements et instituts de beauté. Recherchez, comparez, réservez — en français ou en anglais.",
+    about_s3_title: "Pour les entreprises",
+    about_s3_body:
+      "L'inscription est gratuite. Nous ne prenons que 7% de commission sur les réservations confirmées, avec des paiements directs via MTN MoMo ou Orange Money. Votre établissement peut être en ligne en moins de 10 minutes.",
+    about_cta_pre: "Une question ?",
+    about_cta_link: "Contactez-nous",
+
+    // ── Booking (availability + confirmation) ────────────────────────────────
+    date_unavailable:
+      "Cette date n'est pas disponible. Veuillez en choisir une autre.",
+    dates_unavailable_range:
+      "Certaines dates de votre séjour ne sont pas disponibles. Veuillez modifier vos dates.",
+    confirm_booking: "Confirmer la réservation",
+    payment_method_note:
+      "Votre mode de paiement préféré — pour le moment, le règlement s'effectue auprès de l'établissement.",
+    total_due: "Total à régler",
+    booking_reference: "Référence de réservation",
+    booking_reference_note:
+      "Conservez cette référence — elle vous sera demandée à votre arrivée.",
+    share_whatsapp: "Partager sur WhatsApp",
+    view_my_bookings: "Voir mes réservations",
+
+    // ── Diaspora gifting ─────────────────────────────────────────────────────
+    gift_toggle: "Je réserve pour un proche au Cameroun",
+    gift_toggle_sub:
+      "Idéal pour la diaspora : offrez un séjour, un dîner ou une soirée à un proche — vous payez, il ou elle en profite.",
+    beneficiary_details: "Coordonnées du bénéficiaire",
+    beneficiary_name: "Nom du bénéficiaire",
+    beneficiary_phone: "Téléphone / WhatsApp du bénéficiaire (au Cameroun)",
+    your_details_payer: "Vos coordonnées (payeur)",
+    gift_message: "Message cadeau",
+    gift_message_placeholder: "Un petit mot qui accompagnera la réservation…",
+    gift_badge: "Cadeau",
+    booked_by: "Réservé par",
+    gift_for: "Pour",
+    diaspora_rate_note: "Montant indicatif — le paiement s'effectue en XAF (FCFA).",
   },
 
   en: {
@@ -1448,6 +1521,78 @@ export const translations = {
     set_delete_failed: "Failed to delete account.",
     set_delete_clerk_failed:
       "DB deleted but Clerk deletion failed. Contact support.",
+
+    // ── Hero ─────────────────────────────────────────────────────────────────
+    hero_title_1: "Experience the Best",
+    hero_title_2: "of Your City",
+    hero_subtitle:
+      "From vibrant nightlife to peaceful stays — curated experiences across Cameroon",
+    switcher_nightlife: "Dining & Nightlife",
+    switcher_stays: "Stays",
+    switcher_events: "Event Spaces",
+    hero_search_button: "Search",
+
+    // ── Search & filters ─────────────────────────────────────────────────────
+    for_query: "for",
+    all_cities: "All cities",
+    filter_city: "City",
+
+    // ── Listing detail (gaps) ────────────────────────────────────────────────
+    rating_new: "New",
+    reviews_word: "reviews",
+    cancellation_policy: "Cancellation policy",
+
+    // ── Navbar (aria) ────────────────────────────────────────────────────────
+    menu_open: "Open menu",
+    menu_close: "Close menu",
+
+    // ── Footer ───────────────────────────────────────────────────────────────
+    footer_partner_signin: "Partner sign-in",
+
+    // ── About page ───────────────────────────────────────────────────────────
+    about_title: "About Reserve237",
+    about_intro:
+      "Reserve237 is Cameroon's multi-category booking platform: restaurants, nightlife, stays, event venues, beauty & wellness — all in one place, priced in FCFA, built for Cameroon.",
+    about_s1_title: "Our mission",
+    about_s1_body:
+      "To make booking as easy in Yaoundé and Douala as it is anywhere else in the world — with the payment methods Cameroonians actually use (MTN MoMo, Orange Money) and the channels they prefer (WhatsApp).",
+    about_s2_title: "What we do",
+    about_s2_body:
+      "We connect customers with Cameroon's best venues: restaurant tables, lounges and nightlife, hotels and residences, event halls and beauty salons. Search, compare, book — in French or English.",
+    about_s3_title: "For businesses",
+    about_s3_body:
+      "Listing is free. We only take a 7% commission on confirmed bookings, with direct payouts via MTN MoMo or Orange Money. Your venue can be live in under 10 minutes.",
+    about_cta_pre: "Questions?",
+    about_cta_link: "Contact us",
+
+    // ── Booking (availability + confirmation) ────────────────────────────────
+    date_unavailable: "This date is not available. Please choose another one.",
+    dates_unavailable_range:
+      "Some dates in your stay are unavailable. Please adjust your dates.",
+    confirm_booking: "Confirm booking",
+    payment_method_note:
+      "Your preferred payment method — for now, payment is settled directly with the venue.",
+    total_due: "Total due",
+    booking_reference: "Booking reference",
+    booking_reference_note:
+      "Keep this reference — you'll be asked for it on arrival.",
+    share_whatsapp: "Share on WhatsApp",
+    view_my_bookings: "View my bookings",
+
+    // ── Diaspora gifting ─────────────────────────────────────────────────────
+    gift_toggle: "I'm booking for someone in Cameroon",
+    gift_toggle_sub:
+      "Perfect for the diaspora: treat family or friends back home to a stay, a dinner or a night out — you pay, they enjoy.",
+    beneficiary_details: "Beneficiary details",
+    beneficiary_name: "Beneficiary name",
+    beneficiary_phone: "Beneficiary phone / WhatsApp (in Cameroon)",
+    your_details_payer: "Your details (payer)",
+    gift_message: "Gift message",
+    gift_message_placeholder: "A short note to go with the booking…",
+    gift_badge: "Gift",
+    booked_by: "Booked by",
+    gift_for: "For",
+    diaspora_rate_note: "Indicative amount — payment is settled in XAF (FCFA).",
   },
 } as const
 

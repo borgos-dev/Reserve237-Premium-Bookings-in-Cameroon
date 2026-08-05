@@ -1,23 +1,42 @@
 "use client";
 
 import { motion } from "motion/react";
-import { RiFacebookFill, RiInstagramLine, RiTwitterXLine, RiLinkedinFill } from "react-icons/ri";
 import Link from "next/link";
 import { LogoWordmark } from "@/components/LogoWordmark";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { TranslationKey } from "@/lib/translations";
 
-const socialLinks = [
-  { icon: RiFacebookFill, href: "#", label: "Facebook" },
-  { icon: RiInstagramLine, href: "#", label: "Instagram" },
-  { icon: RiTwitterXLine, href: "#", label: "Twitter" },
-  { icon: RiLinkedinFill, href: "#", label: "LinkedIn" },
-];
-
-const footerLinks: { title: TranslationKey; links: TranslationKey[] }[] = [
-  { title: "footer_explore", links: ["footer_restaurants", "footer_lounges", "footer_nightlife", "footer_guest_houses", "footer_event_spaces"] },
-  { title: "footer_partners", links: ["footer_dashboard", "footer_list_business", "footer_pricing", "footer_resources"] },
-  { title: "footer_company", links: ["footer_about", "nav_contact", "privacy_policy", "terms_of_service"] },
+// Every link points somewhere real — category links deep-link into the browse
+// section via query params (read by SearchFilterSection on mount).
+const footerLinks: { title: TranslationKey; links: { label: TranslationKey; href: string }[] }[] = [
+  {
+    title: "footer_explore",
+    links: [
+      { label: "footer_restaurants", href: "/?category=food-drinks#browse" },
+      { label: "footer_nightlife", href: "/?category=nightlife#browse" },
+      { label: "footer_guest_houses", href: "/?category=accommodation#browse" },
+      { label: "footer_event_spaces", href: "/?category=events-venues#browse" },
+      { label: "cat_beauty_wellness", href: "/?category=beauty-wellness#browse" },
+    ],
+  },
+  {
+    title: "footer_partners",
+    links: [
+      { label: "footer_list_business", href: "/business" },
+      { label: "footer_pricing", href: "/business" },
+      { label: "footer_dashboard", href: "/dashboard" },
+      { label: "footer_partner_signin", href: "/business/sign-in" },
+    ],
+  },
+  {
+    title: "footer_company",
+    links: [
+      { label: "footer_about", href: "/about" },
+      { label: "nav_contact", href: "/contact" },
+      { label: "privacy_policy", href: "/privacy" },
+      { label: "terms_of_service", href: "/terms" },
+    ],
+  },
 ];
 
 export function NewFooter() {
@@ -40,20 +59,6 @@ export function NewFooter() {
             <p className="text-[var(--muted-foreground)] text-sm mb-6">
               {t("footer_tagline")}
             </p>
-
-            {/* Social Icons */}
-            <div className="flex gap-3">
-              {socialLinks.map(({ icon: Icon, href, label }) => (
-                <a
-                  key={label}
-                  href={href}
-                  aria-label={label}
-                  className="w-10 h-10 bg-[var(--card)] border border-[var(--border)] hover:border-[var(--primary)] rounded-xl flex items-center justify-center transition-all"
-                >
-                  <Icon className="w-4 h-4 text-[var(--muted-foreground)]" />
-                </a>
-              ))}
-            </div>
           </motion.div>
 
           {/* Footer Columns */}
@@ -67,11 +72,11 @@ export function NewFooter() {
             >
               <h4 className="font-semibold mb-4">{t(title)}</h4>
               <ul className="space-y-2">
-                {links.map((link) => (
-                  <li key={link}>
-                    <a href="#" className="text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors text-sm">
-                      {t(link)}
-                    </a>
+                {links.map(({ label, href }) => (
+                  <li key={label}>
+                    <Link href={href} className="text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors text-sm">
+                      {t(label)}
+                    </Link>
                   </li>
                 ))}
               </ul>

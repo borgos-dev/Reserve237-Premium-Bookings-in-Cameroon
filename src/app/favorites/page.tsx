@@ -32,7 +32,7 @@ export default function FavoritesPage() {
           className="md:hidden inline-flex items-center gap-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors mb-10"
         >
           <RiArrowLeftLine className="w-4 h-4" />
-          Back to listings
+          {t("back_to_listings")}
         </Link>
 
         {/* Header */}
@@ -123,11 +123,11 @@ export default function FavoritesPage() {
 
                     <div className="flex items-center justify-between">
                       <span className={`badge text-xs capitalize ${getCategoryBadgeClass(listing.mainCategory)}`}>
-                        {categoryLabels[listing.mainCategory] ?? listing.mainCategory}
+                        {t(`cat_${listing.mainCategory.replace(/-/g, "_")}` as Parameters<typeof t>[0]) || categoryLabels[listing.mainCategory] || listing.mainCategory}
                       </span>
                       <div className="flex items-center gap-1 text-sm">
                         <RiStarFill className="w-3.5 h-3.5 text-[#E8B923]" />
-                        <span className="font-medium">{listing.rating > 0 ? listing.rating.toFixed(1) : "New"}</span>
+                        <span className="font-medium">{listing.rating > 0 ? listing.rating.toFixed(1) : t("rating_new")}</span>
                       </div>
                     </div>
 

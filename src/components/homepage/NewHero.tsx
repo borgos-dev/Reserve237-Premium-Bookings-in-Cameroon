@@ -3,8 +3,10 @@
 import { motion } from "motion/react";
 import { CategorySwitcher } from "./CategorySwitcher";
 import { AdaptiveSearch } from "./AdaptiveSearch";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export function NewHero() {
+  const { t } = useLanguage();
   return (
     <div className="relative min-h-[85vh] flex items-center justify-center overflow-hidden pt-24">
       {/* Gradient Base */}
@@ -29,12 +31,12 @@ export function NewHero() {
           className="mb-10"
         >
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4">
-            Experience the Best
+            {t("hero_title_1")}
             <br />
-            <span className="text-[var(--primary)]">of Your City</span>
+            <span className="text-[var(--primary)]">{t("hero_title_2")}</span>
           </h1>
           <p className="text-base sm:text-lg md:text-xl text-[var(--muted-foreground)] max-w-2xl mx-auto">
-            From vibrant nightlife to peaceful stays — curated experiences across Cameroon
+            {t("hero_subtitle")}
           </p>
         </motion.div>
 

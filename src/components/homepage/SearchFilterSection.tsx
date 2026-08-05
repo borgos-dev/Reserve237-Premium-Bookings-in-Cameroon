@@ -1,23 +1,42 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { PremiumListingCard } from "./PremiumListingCard";
 import { categoryColors, categoryIcons, categoryLabels, ALL_MAIN_CATEGORIES } from "@/lib/categoryColors";
 import { useBrowseStore } from "@/stores";
-import { RiAppsLine, RiSearchLine, RiCloseLine } from "react-icons/ri";
+import { RiAppsLine, RiSearchLine, RiCloseLine, RiMapPinLine } from "react-icons/ri";
 import type { PublicListing } from "@/types/listing";
 import { useLanguage } from "@/contexts/LanguageContext";
+
+// Mirrors CITIES in src/db/schema/listings.ts — duplicated so this client
+// component never pulls the drizzle schema into the browser bundle.
+const CITIES = ["Yaounde", "Douala", "Limbe", "Bafoussam", "Bamenda", "Kribi"];
 
 interface SearchFilterSectionProps {
   listings: PublicListing[];
 }
 
 export function SearchFilterSection({ listings }: SearchFilterSectionProps) {
-  const { browseFilter, setBrowseFilter, searchQuery, setSearchQuery } = useBrowseStore();
+  const { browseFilter, setBrowseFilter, searchQuery, setSearchQuery, cityFilter, setCityFilter } = useBrowseStore();
   const { t } = useLanguage();
 
-  const isFiltering = browseFilter !== "all" || searchQuery.trim() !== "";
+  // Deep links: /?category=nightlife&city=Douala&q=rooftop#browse
+  // (used by footer category links; read once on mount)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const category = params.get("category");
+    const city = params.get("city");
+    const q = params.get("q");
+    if (category && (ALL_MAIN_CATEGORIES as readonly string[]).includes(category)) {
+      setBrowseFilter(category);
+    }
+    if (city && CITIES.includes(city)) setCityFilter(city);
+    if (q) setSearchQuery(q);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const isFiltering = browseFilter !== "all" || searchQuery.trim() !== "" || cityFilter !== "all";
 
   const filtered = useMemo(() => {
     if (!isFiltering) return [];
@@ -32,32 +51,49 @@ export function SearchFilterSection({ listings }: SearchFilterSectionProps) {
         listing.amenities.some((a) => a.toLowerCase().includes(q));
       const matchesCategory =
         browseFilter === "all" || listing.mainCategory === browseFilter;
-      return matchesQuery && matchesCategory;
+      const matchesCity = cityFilter === "all" || listing.city === cityFilter;
+      return matchesQuery && matchesCategory && matchesCity;
     });
-  }, [searchQuery, browseFilter, isFiltering, listings]);
+  }, [searchQuery, browseFilter, cityFilter, isFiltering, listings]);
 
   return (
     <section className="py-12 bg-[var(--background)]" id="browse">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        {/* Search Bar */}
-        <div className="relative mb-6 max-w-2xl mx-auto">
-          <RiSearchLine className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--muted-foreground)] pointer-events-none" />
-          <input
-            type="text"
-            placeholder={t("search_placeholder")}
-            className="input-field pl-12 pr-10 w-full py-4 text-base"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+        {/* Search Bar + City filter */}
+        <div className="mb-6 max-w-2xl mx-auto flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <RiSearchLine className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--muted-foreground)] pointer-events-none" />
+            <input
+              type="text"
+              placeholder={t("search_placeholder")}
+              className="input-field pl-12 pr-10 w-full py-4 text-base"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+              >
+                <RiCloseLine className="w-5 h-5" />
+              </button>
+            )}
+          </div>
+          <div className="relative sm:w-52">
+            <RiMapPinLine className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--muted-foreground)] pointer-events-none" />
+            <select
+              value={cityFilter}
+              onChange={(e) => setCityFilter(e.target.value)}
+              aria-label={t("filter_city")}
+              className="input-field pl-12 w-full py-4 text-base appearance-none cursor-pointer"
             >
-              <RiCloseLine className="w-5 h-5" />
-            </button>
-          )}
+              <option value="all">{t("all_cities")}</option>
+              {CITIES.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Category Filters */}
@@ -130,8 +166,13 @@ export function SearchFilterSection({ listings }: SearchFilterSectionProps) {
                     </strong>
                   </span>
                 )}
+                {cityFilter !== "all" && (
+                  <span className="ml-1">
+                    {t("in_category")} <strong>{cityFilter}</strong>
+                  </span>
+                )}
                 {searchQuery && (
-                  <span className="ml-1">pour &ldquo;<strong>{searchQuery}</strong>&rdquo;</span>
+                  <span className="ml-1">{t("for_query")} &ldquo;<strong>{searchQuery}</strong>&rdquo;</span>
                 )}
               </p>
 
@@ -151,10 +192,10 @@ export function SearchFilterSection({ listings }: SearchFilterSectionProps) {
               ) : (
                 <div className="text-center py-24">
                   <p className="text-[var(--muted-foreground)] text-lg mb-6">
-                    {t("no_listings_found")}{searchQuery ? ` pour "${searchQuery}"` : ""}.
+                    {t("no_listings_found")}{searchQuery ? ` ${t("for_query")} "${searchQuery}"` : ""}.
                   </p>
                   <button
-                    onClick={() => { setSearchQuery(""); setBrowseFilter("all"); }}
+                    onClick={() => { setSearchQuery(""); setBrowseFilter("all"); setCityFilter("all"); }}
                     className="btn-secondary"
                   >
                     {t("clear_filters")}

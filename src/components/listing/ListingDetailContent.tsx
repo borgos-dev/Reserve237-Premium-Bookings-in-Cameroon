@@ -23,7 +23,7 @@ import {
 } from "react-icons/ri";
 import { useFavoritesStore } from "@/stores";
 import { getCategoryBadgeClass, categoryLabels } from "@/lib/categoryColors";
-import { formatPriceLabel } from "@/lib/formatPrice";
+import { formatPriceLabel, formatDiasporaEquivalent } from "@/lib/formatPrice";
 import { amenityLabel } from "@/lib/amenityOptions";
 import type { PublicListing } from "@/types/listing";
 import type { PublicReview } from "@/actions/reviews";
@@ -72,7 +72,9 @@ export function ListingDetailContent({ listing, reviews }: Props) {
 
 const whatsappLink = listing.whatsapp
     ? `https://wa.me/${listing.whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(
-        `Bonjour, je suis intéressé(e) par votre établissement "${listing.name}" sur Reserve237. Puis-je avoir plus d'informations?`
+        lang === "fr"
+          ? `Bonjour, je suis intéressé(e) par votre établissement "${listing.name}" sur Reserve237. Puis-je avoir plus d'informations?`
+          : `Hello, I'm interested in your venue "${listing.name}" on Reserve237. Could I have more information?`
       )}`
     : null;
 
@@ -198,16 +200,16 @@ const whatsappLink = listing.whatsapp
             {/* Title + meta */}
             <div>
               <span className={`badge capitalize inline-block mb-3 ${getCategoryBadgeClass(listing.mainCategory)}`}>
-                {categoryLabels[listing.mainCategory] ?? listing.mainCategory}
+                {t(`cat_${listing.mainCategory.replace(/-/g, "_")}` as Parameters<typeof t>[0]) || categoryLabels[listing.mainCategory] || listing.mainCategory}
               </span>
               <h1 className="text-4xl md:text-5xl font-bold mb-3 leading-tight">{listing.name}</h1>
               <div className="flex items-center gap-3 flex-wrap text-[var(--muted-foreground)]">
                 <div className="flex items-center gap-1.5">
                   <RiStarFill className="w-5 h-5 text-[#E8B923]" />
                   <span className="font-semibold text-[var(--foreground)] text-lg">
-                    {listing.rating > 0 ? listing.rating.toFixed(1) : "New"}
+                    {listing.rating > 0 ? listing.rating.toFixed(1) : t("rating_new")}
                   </span>
-                  {listing.reviewCount > 0 && <span>({listing.reviewCount} reviews)</span>}
+                  {listing.reviewCount > 0 && <span>({listing.reviewCount} {t("reviews_word")})</span>}
                 </div>
                 <span>·</span>
                 <div className="flex items-center gap-1.5">
@@ -228,13 +230,13 @@ const whatsappLink = listing.whatsapp
 
             {/* Key info */}
             <div>
-              <h2 className="text-2xl sm:text-3xl font-bold mb-5">Booking Details</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-5">{t("booking_details_title")}</h2>
               <div className="grid grid-cols-1 gap-4">
                 <div className="card p-5">
                   <div className="w-12 h-12 bg-[var(--primary)]/10 rounded-2xl flex items-center justify-center mb-4">
                     <RiMapPinLine className="w-6 h-6 text-[var(--primary)]" />
                   </div>
-                  <p className="text-[var(--muted-foreground)] text-xs font-medium uppercase tracking-wide mb-1">Location</p>
+                  <p className="text-[var(--muted-foreground)] text-xs font-medium uppercase tracking-wide mb-1">{t("location")}</p>
                   <p className="font-semibold text-base">{listing.address ?? listing.location}</p>
                   <p className="text-[var(--muted-foreground)] text-sm mt-1">{listing.city}</p>
                 </div>
@@ -244,7 +246,7 @@ const whatsappLink = listing.whatsapp
                     <div className="w-12 h-12 bg-[var(--primary)]/10 rounded-2xl flex items-center justify-center mb-4">
                       <RiMoneyDollarCircleLine className="w-6 h-6 text-[var(--primary)]" />
                     </div>
-                    <p className="text-[var(--muted-foreground)] text-xs font-medium uppercase tracking-wide mb-1">Price</p>
+                    <p className="text-[var(--muted-foreground)] text-xs font-medium uppercase tracking-wide mb-1">{t("price")}</p>
                     <p className="font-semibold text-base text-[var(--primary)]">
                       {formatPriceLabel(listing.priceMin, listing.mainCategory, lang, listing.priceLabel)}
                     </p>
@@ -308,22 +310,22 @@ const whatsappLink = listing.whatsapp
                 <div className="flex items-center gap-3 px-5 py-4 flex-1 min-w-[160px]">
                   <RiStarFill className="w-5 h-5 text-[#E8B923] flex-none" />
                   <div>
-                    <p className="text-base font-semibold leading-tight">{listing.rating > 0 ? listing.rating.toFixed(1) : "New"}</p>
-                    <p className="text-[11px] uppercase tracking-wide text-[var(--muted-foreground)] mt-0.5">Rating</p>
+                    <p className="text-base font-semibold leading-tight">{listing.rating > 0 ? listing.rating.toFixed(1) : t("rating_new")}</p>
+                    <p className="text-[11px] uppercase tracking-wide text-[var(--muted-foreground)] mt-0.5">{t("rating")}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 px-5 py-4 flex-1 min-w-[160px]">
                   <RiChat3Line className="w-5 h-5 text-[var(--primary)] flex-none" />
                   <div>
                     <p className="text-base font-semibold leading-tight">{listing.reviewCount}</p>
-                    <p className="text-[11px] uppercase tracking-wide text-[var(--muted-foreground)] mt-0.5">Reviews</p>
+                    <p className="text-[11px] uppercase tracking-wide text-[var(--muted-foreground)] mt-0.5">{t("reviews")}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 px-5 py-4 flex-1 min-w-[160px]">
                   <RiTeamLine className="w-5 h-5 text-[var(--primary)] flex-none" />
                   <div>
                     <p className="text-base font-semibold leading-tight capitalize">{listing.subCategory.replace(/-/g, " ")}</p>
-                    <p className="text-[11px] uppercase tracking-wide text-[var(--muted-foreground)] mt-0.5">Type</p>
+                    <p className="text-[11px] uppercase tracking-wide text-[var(--muted-foreground)] mt-0.5">{t("type")}</p>
                   </div>
                 </div>
               </div>
@@ -332,7 +334,7 @@ const whatsappLink = listing.whatsapp
             {/* Reviews section */}
             <div id="reviews">
               <h2 className="text-xl font-semibold mb-4">
-                Reviews
+                {t("reviews")}
                 {reviews.length > 0 && (
                   <span className="ml-2 text-sm font-normal text-[var(--muted-foreground)]">
                     ({reviews.length})
@@ -369,13 +371,13 @@ const whatsappLink = listing.whatsapp
                       {review.reply && (
                         <div className="mt-3 pl-4 border-l-2 border-[var(--primary)]/30">
                           <p className="text-xs font-medium text-[var(--primary)] mb-1">
-                            Response from the business
+                            {t("response_from_business")}
                           </p>
                           <p className="text-xs text-[var(--muted-foreground)]">{review.reply}</p>
                         </div>
                       )}
                       <p className="text-[10px] text-[var(--muted-foreground)]/50 mt-2">
-                        {new Date(review.createdAt).toLocaleDateString("en-GB", {
+                        {new Date(review.createdAt).toLocaleDateString(lang === "fr" ? "fr-FR" : "en-GB", {
                           day: "numeric", month: "long", year: "numeric",
                         })}
                       </p>
@@ -397,14 +399,20 @@ const whatsappLink = listing.whatsapp
                   <p className="text-2xl font-bold text-[var(--primary)] mt-0.5">
                     {formatPriceLabel(listing.priceMin, listing.mainCategory, lang, listing.priceLabel) ?? t("contact_for_price")}
                   </p>
+                  {/* Diaspora transparency — XAF is pegged to EUR, so € is exact */}
+                  {formatDiasporaEquivalent(listing.priceMin) && (
+                    <p className="text-xs text-[var(--muted-foreground)] mt-0.5" title={t("diaspora_rate_note")}>
+                      {formatDiasporaEquivalent(listing.priceMin)}
+                    </p>
+                  )}
                   {listing.priceRange && <span className="text-xs text-[var(--muted-foreground)] capitalize">{listing.priceRange}</span>}
                 </div>
 
                 {/* Rating */}
                 <div className="flex items-center gap-2 py-3 border-y border-[var(--border)]">
                   <RiStarFill className="w-5 h-5 text-[#E8B923] shrink-0" />
-                  <span className="font-bold">{listing.rating > 0 ? listing.rating.toFixed(1) : "New"}</span>
-                  {listing.reviewCount > 0 && <span className="text-[var(--muted-foreground)] text-sm">· {listing.reviewCount} reviews</span>}
+                  <span className="font-bold">{listing.rating > 0 ? listing.rating.toFixed(1) : t("rating_new")}</span>
+                  {listing.reviewCount > 0 && <span className="text-[var(--muted-foreground)] text-sm">· {listing.reviewCount} {t("reviews_word")}</span>}
                 </div>
 
                 {/* Book CTA — only shown when the listing has a bookable price */}
@@ -459,6 +467,12 @@ const whatsappLink = listing.whatsapp
                     </a>
                   )}
                 </div>
+              </div>
+
+              {/* Cancellation policy — visible before the user ever clicks Book */}
+              <div className="card p-4">
+                <p className="text-sm font-medium mb-1">{t("cancellation_policy")}</p>
+                <p className="text-xs text-[var(--muted-foreground)] leading-relaxed">{t("free_cancellation")}</p>
               </div>
 
               {/* Verified note */}

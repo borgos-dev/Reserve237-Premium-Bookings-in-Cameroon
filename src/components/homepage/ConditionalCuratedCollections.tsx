@@ -9,8 +9,8 @@ interface Props {
 }
 
 export function ConditionalCuratedCollections({ listings }: Props) {
-  const { browseFilter, searchQuery } = useBrowseStore();
-  const isFiltering = browseFilter !== "all" || searchQuery.trim() !== "";
+  const { browseFilter, searchQuery, cityFilter } = useBrowseStore();
+  const isFiltering = browseFilter !== "all" || searchQuery.trim() !== "" || cityFilter !== "all";
   if (isFiltering) return null;
   return <CuratedCollections listings={listings} />;
 }

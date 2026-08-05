@@ -1,16 +1,30 @@
 "use client";
 
 import { useState } from "react";
-import { useCategoryStore } from "@/stores";
+import { useCategoryStore, useBrowseStore } from "@/stores";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { RiMapPinLine, RiCalendarLine, RiTimeLine, RiTeamLine, RiBuildingLine } from "react-icons/ri";
+import { RiMapPinLine, RiCalendarLine, RiTimeLine, RiTeamLine, RiBuildingLine, RiSearchLine } from "react-icons/ri";
 import { motion, AnimatePresence } from "motion/react";
 
 const optionStyle = { color: "#1F2A2A", backgroundColor: "#F8F1EA" };
 
+// Hero tab → browse category (the grid below filters on mainCategory)
+const HERO_TO_BROWSE: Record<string, string> = {
+  nightlife: "nightlife",
+  stays: "accommodation",
+  events: "events-venues",
+};
+
+// Mirrors CITIES in src/db/schema/listings.ts (kept out of the client bundle)
+const CITIES = ["Yaounde", "Douala", "Limbe", "Bafoussam", "Bamenda", "Kribi"];
+
+const normalize = (s: string) =>
+  s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+
 export function AdaptiveSearch() {
   const { selectedCategory } = useCategoryStore();
-  const { lang } = useLanguage();
+  const { setBrowseFilter, setSearchQuery, setCityFilter } = useBrowseStore();
+  const { lang, t } = useLanguage();
   const fr = lang === "fr";
 
   const [formData, setFormData] = useState({
@@ -18,6 +32,16 @@ export function AdaptiveSearch() {
   });
 
   const locationPlaceholder = fr ? "Ville ou quartier" : "Location";
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    // "Yaoundé" (any accent/case) becomes a city filter; anything else a text search
+    const matchedCity = CITIES.find((c) => normalize(c) === normalize(formData.location));
+    setCityFilter(matchedCity ?? "all");
+    setSearchQuery(matchedCity ? "" : formData.location.trim());
+    setBrowseFilter(HERO_TO_BROWSE[selectedCategory] ?? "all");
+    document.getElementById("browse")?.scrollIntoView({ behavior: "smooth" });
+  };
 
   const renderFields = () => {
     switch (selectedCategory) {
@@ -123,17 +147,27 @@ export function AdaptiveSearch() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
     >
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={`${selectedCategory}-${lang}`}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.3 }}
+      <form onSubmit={handleSearch}>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`${selectedCategory}-${lang}`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+          >
+            {renderFields()}
+          </motion.div>
+        </AnimatePresence>
+
+        <button
+          type="submit"
+          className="btn-primary w-full sm:w-auto sm:px-10 mt-4 py-3.5 inline-flex items-center justify-center gap-2 font-semibold"
         >
-          {renderFields()}
-        </motion.div>
-      </AnimatePresence>
+          <RiSearchLine className="w-5 h-5" />
+          {t("hero_search_button")}
+        </button>
+      </form>
     </motion.div>
   );
 }

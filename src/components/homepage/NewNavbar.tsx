@@ -107,7 +107,7 @@ export function NewNavbar() {
             <Link
               href="/favorites"
               className="relative p-2.5 rounded-lg hover:bg-[var(--secondary)] transition-colors"
-              title="My Favorites"
+              title={t("nav_favorites")}
               onClick={() => setMobileMenuOpen(false)}
             >
               {hasFavorites ? (
@@ -143,10 +143,10 @@ export function NewNavbar() {
                 <Link
                   href="/dashboard"
                   className="hidden sm:inline-flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-lg bg-[var(--primary)]/10 text-[var(--primary)] hover:bg-[var(--primary)]/20 transition-colors"
-                  title="Go to dashboard"
+                  title={t("nav_dashboard")}
                 >
                   <RiDashboardLine className="w-4 h-4" />
-                  Dashboard
+                  {t("nav_dashboard")}
                 </Link>
               ) : (
                 <Link
@@ -169,7 +169,7 @@ export function NewNavbar() {
             <button
               onClick={() => setMobileMenuOpen((open) => !open)}
               className="md:hidden p-2.5 rounded-lg hover:bg-[var(--secondary)] transition-colors"
-              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+              aria-label={mobileMenuOpen ? t("menu_close") : t("menu_open")}
               aria-expanded={mobileMenuOpen}
             >
               {mobileMenuOpen ? (
@@ -242,7 +242,7 @@ export function NewNavbar() {
                   className="flex items-center gap-3 rounded-2xl px-4 py-3 text-[var(--foreground)] hover:bg-[var(--secondary)]"
                 >
                   <RiDashboardLine className="w-5 h-5 text-[var(--primary)]" />
-                  Dashboard
+                  {t("nav_dashboard")}
                 </Link>
               ) : (
                 <Link

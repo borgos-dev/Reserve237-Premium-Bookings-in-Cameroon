@@ -23,6 +23,8 @@ interface BrowseStore {
   setBrowseFilter: (filter: string) => void;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
+  cityFilter: string;          // city name or "all"
+  setCityFilter: (city: string) => void;
 }
 
 export const useBrowseStore = create<BrowseStore>((set) => ({
@@ -30,6 +32,8 @@ export const useBrowseStore = create<BrowseStore>((set) => ({
   setBrowseFilter: (browseFilter) => set({ browseFilter }),
   searchQuery: "",
   setSearchQuery: (searchQuery) => set({ searchQuery }),
+  cityFilter: "all",
+  setCityFilter: (cityFilter) => set({ cityFilter }),
 }));
 
 // ─── Favorites store ──────────────────────────────────────────────────────────

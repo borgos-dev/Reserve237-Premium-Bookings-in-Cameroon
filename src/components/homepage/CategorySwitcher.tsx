@@ -2,16 +2,19 @@
 
 import { motion } from "motion/react";
 import { useCategoryStore } from "@/stores";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { RiRestaurantLine, RiHome4Line, RiBuildingLine } from "react-icons/ri";
+import type { TranslationKey } from "@/lib/translations";
 
-const categories = [
-  { id: "nightlife", label: "Dining & Nightlife", icon: RiRestaurantLine },
-  { id: "stays", label: "Stays", icon: RiHome4Line },
-  { id: "events", label: "Event Spaces", icon: RiBuildingLine },
-] as const;
+const categories: { id: "nightlife" | "stays" | "events"; label: TranslationKey; icon: typeof RiRestaurantLine }[] = [
+  { id: "nightlife", label: "switcher_nightlife", icon: RiRestaurantLine },
+  { id: "stays", label: "switcher_stays", icon: RiHome4Line },
+  { id: "events", label: "switcher_events", icon: RiBuildingLine },
+];
 
 export function CategorySwitcher() {
   const { selectedCategory, setSelectedCategory } = useCategoryStore();
+  const { t } = useLanguage();
 
   return (
     <div className="glass px-2 py-2 rounded-full w-full max-w-full sm:w-fit mx-auto relative overflow-x-auto scrollbar-hide">
@@ -23,7 +26,7 @@ export function CategorySwitcher() {
           return (
             <motion.button
               key={cat.id}
-              onClick={() => setSelectedCategory(cat.id as any)}
+              onClick={() => setSelectedCategory(cat.id)}
               className={`relative px-4 sm:px-6 py-3 rounded-full font-medium text-sm transition-colors flex items-center gap-2 whitespace-nowrap ${
                 isActive
                   ? "text-[var(--primary-foreground)]"
@@ -41,7 +44,7 @@ export function CategorySwitcher() {
                 />
               )}
               <Icon className="w-4 h-4" />
-              <span>{cat.label}</span>
+              <span>{t(cat.label)}</span>
             </motion.button>
           );
         })}

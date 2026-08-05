@@ -15,6 +15,7 @@ import { useFavoritesStore } from "@/stores";
 import type { PublicListing } from "@/types/listing";
 import { getCategoryBadgeClass, categoryLabels } from "@/lib/categoryColors";
 import { formatPriceLabel } from "@/lib/formatPrice";
+import { amenityLabel } from "@/lib/amenityOptions";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 const NEW_LABEL: Record<string, string> = { fr: "Nouveau", en: "New" };
@@ -101,7 +102,7 @@ export function PremiumListingCard({ listing }: PremiumListingCardProps) {
               {t(`cat_${listing.mainCategory.replace(/-/g, "_")}` as Parameters<typeof t>[0]) || categoryLabels[listing.mainCategory]}
             </span>
             {listing.amenities.slice(0, 2).map((amenity) => (
-              <span key={amenity} className="badge text-xs">{amenity}</span>
+              <span key={amenity} className="badge text-xs">{amenityLabel(amenity, lang)}</span>
             ))}
           </div>
 
