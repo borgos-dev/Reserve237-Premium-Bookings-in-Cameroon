@@ -40,27 +40,35 @@ export default function ContactPage() {
     const serviceId = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID;
     const templateId = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID;
     const publicKey = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY;
+    const teamEmail = process.env.NEXT_PUBLIC_TEAM_EMAIL;
 
-    if (!serviceId || !templateId || !publicKey) {
+    if (!serviceId || !templateId || !publicKey || !teamEmail) {
       setError(t("contact_not_configured"));
       setLoading(false);
       return;
     }
 
     try {
-      // Keeps its own purpose-built template (name / email / phone / subject /
-      // message fields, styled reply + call-back buttons). Booking mail uses a
-      // separate generic template — see EMAILJS_TEMPLATE_NOTIFY in lib/email.ts.
+      // The account has one template slot, so this shares the notification
+      // shell (to_email / reply_to / subject / message) with booking mail.
+      // The sender's details ride inside the body because the shell has no
+      // fields of its own for them. See src/lib/email.ts.
       await emailjs.send(
         serviceId,
         templateId,
         {
-          name: form.name,
-          email: form.email,
-          phone: form.phone,
-          subject: form.subject,
-          message: form.message,
+          to_email: teamEmail,
+          to_name: "Reserve237",
+          subject: `Contact — ${form.subject}`,
           reply_to: form.email,
+          message: [
+            `De / From : ${form.name} <${form.email}>`,
+            form.phone ? `Téléphone : ${form.phone}` : null,
+            "",
+            form.message,
+          ]
+            .filter((line) => line !== null)
+            .join("\n"),
         },
         { publicKey },
       );
