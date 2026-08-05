@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ClerkProvider } from "@clerk/nextjs";
 import { FavoritesSync } from "@/components/FavoritesSync";
+import { ConsentBanner } from "@/components/ConsentBanner";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 
 const inter = Inter({
@@ -82,6 +83,7 @@ export default function RootLayout({
             <LanguageProvider>
               <FavoritesSync />
               {children}
+              <ConsentBanner />
             </LanguageProvider>
           </ThemeProvider>
         </ClerkProvider>

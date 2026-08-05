@@ -795,6 +795,12 @@ export const translations = {
       "Offrez un séjour ou un dîner à un proche au Cameroun — vous payez, il ou elle en profite. Prix aussi en € et $.",
     about_explore_categories: "Explorez nos catégories",
 
+    // ── Consent banner ───────────────────────────────────────────────────────
+    consent_title: "Votre confidentialité",
+    consent_text_1: "En utilisant Reserve237, vous acceptez nos",
+    consent_text_2: "et notre",
+    consent_accept: "J'ai compris",
+
     // ── Booking (availability + confirmation) ────────────────────────────────
     date_unavailable:
       "Cette date n'est pas disponible. Veuillez en choisir une autre.",
@@ -1616,6 +1622,12 @@ export const translations = {
     about_v4_body:
       "Treat a loved one in Cameroon to a stay or a dinner — you pay, they enjoy. Prices also in € and $.",
     about_explore_categories: "Explore our categories",
+
+    // ── Consent banner ───────────────────────────────────────────────────────
+    consent_title: "Your privacy",
+    consent_text_1: "By using Reserve237, you agree to our",
+    consent_text_2: "and our",
+    consent_accept: "Got it",
 
     // ── Booking (availability + confirmation) ────────────────────────────────
     date_unavailable: "This date is not available. Please choose another one.",
