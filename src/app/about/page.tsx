@@ -62,13 +62,16 @@ export default function AboutPage() {
           <div className="absolute -bottom-24 -right-24 w-80 h-80 bg-[#F8F1EA] rounded-full blur-[140px] opacity-10 pointer-events-none" />
 
           <div className="relative z-10">
+            {/* Tight-cropped logo (the original PNG is 70% transparent padding)
+                shown large with a soft gold halo */}
             <Image
-              src="/Reserve237-logo.png"
+              src="/Reserve237-logo-tight.png"
               alt="Reserve237"
-              width={260}
-              height={90}
+              width={274}
+              height={148}
               unoptimized
-              className="h-14 sm:h-20 w-auto mx-auto mb-8"
+              priority
+              className="h-28 sm:h-36 md:h-44 w-auto mx-auto mb-8 drop-shadow-[0_0_45px_rgba(232,185,35,0.45)]"
             />
             <h1 className="text-3xl sm:text-5xl font-bold text-[#F8F1EA] max-w-3xl mx-auto leading-tight mb-5">
               {t("about_hero_title")}
