@@ -25,3 +25,23 @@ export function formatPriceLabel(
   }
   return lang === "fr" ? `À partir de ${n} XAF` : `From ${n} XAF`;
 }
+
+// ─── Diaspora price transparency ──────────────────────────────────────────────
+// XAF (CFA franc BEAC) is pegged to the euro at a FIXED rate — the EUR figure
+// is exact, no FX API needed. USD is indicative only, derived via the peg.
+
+export const XAF_PER_EUR = 655.957; // fixed peg (BEAC)
+const EUR_PER_USD_APPROX = 0.92; // indicative — update occasionally
+
+export function formatDiasporaEquivalent(xaf: number | null | undefined): string | null {
+  if (xaf == null || xaf <= 0) return null;
+  const eur = xaf / XAF_PER_EUR;
+  const usd = eur / EUR_PER_USD_APPROX;
+  const fmt = (n: number, currency: string) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+      maximumFractionDigits: n < 100 ? 2 : 0,
+    }).format(n);
+  return `≈ ${fmt(eur, "EUR")} · ${fmt(usd, "USD")}`;
+}

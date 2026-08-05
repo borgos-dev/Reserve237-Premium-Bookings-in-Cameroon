@@ -5,6 +5,7 @@ import {
   timestamp,
   integer,
   date,
+  boolean,
 } from 'drizzle-orm/pg-core'
 import { listings } from './listings'
 
@@ -18,6 +19,13 @@ export const bookings = pgTable('bookings', {
   guestName: text('guest_name').notNull(),
   guestEmail: text('guest_email').notNull(),
   guestPhone: text('guest_phone').notNull(),
+  // Diaspora gifting — someone abroad books & pays for a beneficiary in Cameroon.
+  // When isGift: guest* fields hold the BENEFICIARY, booker* fields hold the PAYER.
+  isGift: boolean('is_gift').default(false).notNull(),
+  bookerName: text('booker_name'),
+  bookerEmail: text('booker_email'),
+  bookerPhone: text('booker_phone'),
+  giftMessage: text('gift_message'),
   // Date range (accommodation, car hire)
   checkIn: date('check_in'),
   checkOut: date('check_out'),

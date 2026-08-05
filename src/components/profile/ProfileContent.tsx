@@ -191,6 +191,11 @@ function BookingCard({
           <p className="text-[var(--muted-foreground)] text-xs mt-0.5">
             {t("booking_id_label")}: {booking.id.slice(0, 8).toUpperCase()}
           </p>
+          {booking.isGift && (
+            <p className="text-xs text-[var(--primary)] mt-0.5 font-medium">
+              🎁 {t("gift_badge")} — {t("gift_for")} {booking.guestName}
+            </p>
+          )}
         </div>
         <StatusBadge status={booking.status} />
       </div>
@@ -203,7 +208,7 @@ function BookingCard({
         </div>
         <div className="flex items-center gap-2 text-[var(--muted-foreground)]">
           <RiTeamLine className="w-4 h-4 shrink-0 text-[var(--primary)]" />
-          <span className="text-xs">{booking.guests} guest{booking.guests !== 1 ? "s" : ""}</span>
+          <span className="text-xs">{booking.guests} {booking.guests !== 1 ? t("guest_plural") : t("guest_singular")}</span>
         </div>
         <div className="flex items-center gap-2 text-[var(--muted-foreground)]">
           <RiMoneyDollarCircleLine className="w-4 h-4 shrink-0 text-[var(--primary)]" />

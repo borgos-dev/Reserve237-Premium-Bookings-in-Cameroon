@@ -21,6 +21,7 @@ import {
   RiTimer2Line,
   RiStarLine,
   RiInformationLine,
+  RiGiftLine,
 } from "react-icons/ri";
 import { updateBookingStatus, type PartnerBooking, type BookingStatusUpdate } from "@/actions/bookings";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -146,8 +147,13 @@ function BookingCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <div>
-              <p className="font-semibold text-[#1F2A2A] text-sm leading-tight">
+              <p className="font-semibold text-[#1F2A2A] text-sm leading-tight flex items-center gap-1.5">
                 {booking.guestName}
+                {booking.isGift && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[#13695A]/10 text-[#13695A] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">
+                    <RiGiftLine className="w-3 h-3" /> {t("gift_badge")}
+                  </span>
+                )}
               </p>
               <p className="text-[#1F2A2A]/50 text-xs mt-0.5 truncate">
                 {booking.listingName}
@@ -259,6 +265,22 @@ function BookingCard({
                   )}
                 </div>
               </div>
+
+              {/* Gift booking — the payer is a different person than the guest */}
+              {booking.isGift && (
+                <div className="bg-[#13695A]/8 border border-[#13695A]/20 rounded-xl p-3">
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-[#13695A]/70 mb-1.5 flex items-center gap-1">
+                    <RiGiftLine className="w-3 h-3" /> {t("gift_badge")} — {t("booked_by")}{" "}
+                    {booking.bookerName ?? "?"}
+                    {booking.bookerPhone ? ` (${booking.bookerPhone})` : ""}
+                  </p>
+                  {booking.giftMessage && (
+                    <p className="text-xs text-[#1F2A2A]/70 leading-relaxed italic">
+                      &ldquo;{booking.giftMessage}&rdquo;
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Notes */}
               {booking.notes && (

@@ -46,6 +46,9 @@ export interface BookingEmailData {
   guests: number
   totalXaf: number
   paymentMethod: string
+  // Diaspora gifting — set when the payer books for a beneficiary in Cameroon
+  isGift?: boolean
+  beneficiaryName?: string
 }
 
 export async function sendBookingEmails(data: BookingEmailData): Promise<void> {
@@ -55,12 +58,17 @@ export async function sendBookingEmails(data: BookingEmailData): Promise<void> {
   const paymentLabel = PAYMENT_LABELS[data.paymentMethod] ?? data.paymentMethod
   const totalFormatted = fmtXAF(data.totalXaf)
 
-  // 1. Confirmation to customer
+  // A gift booking labels the arriving guest so both emails stay unambiguous
+  const giftNote = data.isGift && data.beneficiaryName
+    ? ` (gift booking — guest: ${data.beneficiaryName})`
+    : ''
+
+  // 1. Confirmation to customer (the payer, for gift bookings)
   if (customerTemplateId) {
     await sendEmail(customerTemplateId, {
       to_name: data.customerName,
       to_email: data.customerEmail,
-      listing_name: data.listingName,
+      listing_name: data.listingName + giftNote,
       booking_ref: data.bookingRef,
       dates: data.dates,
       guests: data.guests,
@@ -74,8 +82,8 @@ export async function sendBookingEmails(data: BookingEmailData): Promise<void> {
     await sendEmail(partnerTemplateId, {
       to_name: data.partnerName ?? 'Partner',
       to_email: data.partnerEmail,
-      listing_name: data.listingName,
-      customer_name: data.customerName,
+      listing_name: data.listingName + giftNote,
+      customer_name: data.isGift && data.beneficiaryName ? data.beneficiaryName : data.customerName,
       customer_phone: data.customerPhone,
       customer_email: data.customerEmail,
       booking_ref: data.bookingRef,

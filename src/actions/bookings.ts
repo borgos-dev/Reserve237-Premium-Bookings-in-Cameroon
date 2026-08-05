@@ -80,6 +80,13 @@ async function checkDateConflicts(
 
 // ─── Customer: create a booking ───────────────────────────────────────────────
 
+const SERVICE_FEE_RATE = 0.07
+
+function capacityFromDetails(details: unknown): number | null {
+  const c = (details as { capacity?: unknown } | null)?.capacity
+  return typeof c === 'number' && c > 0 ? c : null
+}
+
 export interface CreateBookingInput {
   listingSlug: string
   userId?: string | null
@@ -91,14 +98,19 @@ export interface CreateBookingInput {
   bookingDate?: string
   bookingTime?: string
   guests: number
-  totalXaf: number
-  serviceFeeXaf: number
   paymentMethod: 'mtn-momo' | 'orange-money' | 'card' | 'cash'
   notes?: string
+  // Diaspora gifting — guest* fields above hold the beneficiary in Cameroon,
+  // booker* fields hold the payer (usually abroad)
+  isGift?: boolean
+  bookerName?: string
+  bookerEmail?: string
+  bookerPhone?: string
+  giftMessage?: string
 }
 
 export type BookingResult =
-  | { success: true; bookingId: string }
+  | { success: true; bookingId: string; bookingRef: string; totalXaf: number; serviceFeeXaf: number }
   | { success: false; error: string }
 
 export async function createBooking(
@@ -119,12 +131,15 @@ export async function createBooking(
       }
     }
 
-    // 1. Find listing + its business for email notification
+    // 1. Find listing (price + capacity are the pricing source of truth)
     const [listing] = await db
       .select({
         id: listings.id,
         name: listings.name,
         businessId: listings.businessId,
+        priceMin: listings.priceMin,
+        mainCategory: listings.mainCategory,
+        details: listings.details,
       })
       .from(listings)
       .where(eq(listings.slug, input.listingSlug))
@@ -133,19 +148,63 @@ export async function createBooking(
     if (!listing) {
       return { success: false, error: 'Listing not found. Please try again.' }
     }
+    if (listing.priceMin == null || listing.priceMin <= 0) {
+      return { success: false, error: 'This listing cannot be booked online. Please contact the venue.' }
+    }
 
-    // 2. Date conflict validation
+    // 2. Validate guests against the listing's capacity
+    const capacity = capacityFromDetails(listing.details) ?? 20
+    const guests = Math.round(input.guests)
+    if (!Number.isFinite(guests) || guests < 1 || guests > capacity) {
+      return { success: false, error: `Guests must be between 1 and ${capacity}.` }
+    }
+
+    // 3. Validate dates
+    const isAccommodation = listing.mainCategory === 'accommodation'
+    const todayStr = new Date().toISOString().slice(0, 10)
+    let nights = 0
+    if (isAccommodation) {
+      if (!input.checkIn || !input.checkOut) {
+        return { success: false, error: 'Please select check-in and check-out dates.' }
+      }
+      if (input.checkIn < todayStr) {
+        return { success: false, error: 'Check-in date cannot be in the past.' }
+      }
+      nights = Math.round(
+        (new Date(input.checkOut).getTime() - new Date(input.checkIn).getTime()) / 86_400_000
+      )
+      if (!Number.isFinite(nights) || nights < 1) {
+        return { success: false, error: 'Check-out must be after check-in.' }
+      }
+    } else {
+      if (!input.bookingDate) {
+        return { success: false, error: 'Please select a date.' }
+      }
+      if (input.bookingDate < todayStr) {
+        return { success: false, error: 'The booking date cannot be in the past.' }
+      }
+    }
+
+    // 4. Date conflict validation
     const conflict = await checkDateConflicts(
       listing.id,
-      input.checkIn ?? null,
-      input.checkOut ?? null,
-      input.bookingDate ?? null
+      isAccommodation ? input.checkIn! : null,
+      isAccommodation ? input.checkOut! : null,
+      isAccommodation ? null : input.bookingDate!
     )
     if (conflict) {
       return { success: false, error: conflict }
     }
 
-    // 3. Insert booking
+    // 5. Recompute price server-side — never trust client totals
+    const subtotal = isAccommodation
+      ? listing.priceMin * nights * guests
+      : listing.priceMin * guests
+    const serviceFeeXaf = Math.round(subtotal * SERVICE_FEE_RATE)
+    const totalXaf = subtotal + serviceFeeXaf
+
+    // 6. Insert booking
+    const isGift = input.isGift === true
     const [booking] = await db
       .insert(bookings)
       .values({
@@ -154,21 +213,28 @@ export async function createBooking(
         guestName: input.guestName,
         guestEmail: input.guestEmail,
         guestPhone: input.guestPhone,
-        checkIn: input.checkIn ?? null,
-        checkOut: input.checkOut ?? null,
-        bookingDate: input.bookingDate ?? null,
-        bookingTime: input.bookingTime ?? null,
-        guests: input.guests,
-        totalXaf: input.totalXaf,
-        serviceFeeXaf: input.serviceFeeXaf,
+        checkIn: isAccommodation ? input.checkIn! : null,
+        checkOut: isAccommodation ? input.checkOut! : null,
+        bookingDate: isAccommodation ? null : input.bookingDate!,
+        bookingTime: isAccommodation ? null : input.bookingTime ?? null,
+        guests,
+        totalXaf,
+        serviceFeeXaf,
         paymentMethod: input.paymentMethod,
         paymentStatus: 'pending',
         status: 'pending',
         notes: input.notes ?? null,
+        isGift,
+        bookerName: isGift ? input.bookerName ?? null : null,
+        bookerEmail: isGift ? input.bookerEmail ?? null : null,
+        bookerPhone: isGift ? input.bookerPhone ?? null : null,
+        giftMessage: isGift ? input.giftMessage ?? null : null,
       })
       .returning({ id: bookings.id })
 
-    // 4. Send confirmation emails — fire-and-forget, never blocks the UI
+    const bookingRef = booking.id.slice(0, 8).toUpperCase()
+
+    // 7. Send confirmation emails — fire-and-forget, never blocks the UI
     if (listing.businessId) {
       const [business] = await db
         .select({ email: businesses.email, name: businesses.name })
@@ -177,28 +243,30 @@ export async function createBooking(
         .limit(1)
 
       const dates =
-        input.checkIn && input.checkOut
+        isAccommodation
           ? `${input.checkIn} → ${input.checkOut}`
-          : input.bookingDate
-          ? `${input.bookingDate}${input.bookingTime ? ` · ${input.bookingTime}` : ''}`
-          : 'Contact for details'
+          : `${input.bookingDate}${input.bookingTime ? ` · ${input.bookingTime}` : ''}`
 
       sendBookingEmails({
-        customerEmail: input.guestEmail,
-        customerName: input.guestName,
+        // For gifts the confirmation goes to the payer; the venue still sees
+        // the beneficiary as the guest arriving.
+        customerEmail: isGift && input.bookerEmail ? input.bookerEmail : input.guestEmail,
+        customerName: isGift && input.bookerName ? input.bookerName : input.guestName,
         customerPhone: input.guestPhone,
         partnerEmail: business?.email,
         partnerName: business?.name,
         listingName: listing.name,
-        bookingRef: booking.id.slice(0, 8).toUpperCase(),
+        bookingRef,
         dates,
-        guests: input.guests,
-        totalXaf: input.totalXaf,
+        guests,
+        totalXaf,
         paymentMethod: input.paymentMethod,
+        isGift,
+        beneficiaryName: isGift ? input.guestName : undefined,
       }).catch((err) => console.error('[createBooking] email error:', err))
     }
 
-    return { success: true, bookingId: booking.id }
+    return { success: true, bookingId: booking.id, bookingRef, totalXaf, serviceFeeXaf }
   } catch (err) {
     console.error('[createBooking]', err)
     return { success: false, error: 'Something went wrong. Please try again.' }
@@ -226,6 +294,10 @@ export interface PartnerBooking {
   paymentStatus: string
   status: string
   notes: string | null
+  isGift: boolean
+  bookerName: string | null
+  bookerPhone: string | null
+  giftMessage: string | null
   createdAt: Date
 }
 
@@ -287,6 +359,10 @@ export async function getPartnerBookings(
     paymentStatus: b.paymentStatus,
     status: b.status,
     notes: b.notes,
+    isGift: b.isGift,
+    bookerName: b.bookerName,
+    bookerPhone: b.bookerPhone,
+    giftMessage: b.giftMessage,
     createdAt: b.createdAt,
   }))
 }

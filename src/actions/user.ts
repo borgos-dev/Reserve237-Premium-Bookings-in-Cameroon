@@ -20,6 +20,8 @@ export interface UserBooking {
   paymentMethod: string
   status: string
   hasReviewed: boolean     // whether user already left a review for this booking
+  isGift: boolean          // booked for someone else (diaspora gifting)
+  guestName: string        // the arriving guest (beneficiary, for gifts)
   createdAt: Date
 }
 
@@ -39,6 +41,8 @@ export async function getUserBookings(userId: string): Promise<UserBooking[]> {
       serviceFeeXaf: bookings.serviceFeeXaf,
       paymentMethod: bookings.paymentMethod,
       status: bookings.status,
+      isGift: bookings.isGift,
+      guestName: bookings.guestName,
       createdAt: bookings.createdAt,
     })
     .from(bookings)
