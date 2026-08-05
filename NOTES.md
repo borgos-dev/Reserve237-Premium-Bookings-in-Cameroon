@@ -1605,3 +1605,25 @@ Account → Security → allow the API for non-browser applications.
 routes at international prices with no local sender ID; a Cameroonian aggregator through
 `SMS_PROVIDER=generic` is the better fit). The one business row in prod still has
 `phone = null`, so it has no SMS destination. `npm run lint` still broken.
+
+**Verified end-to-end against production, 2026-08-05 (9/9 checks).** A throwaway
+script drove four real bookings on "Marina Spa" down every branch, then deleted them
+and restored what it touched (bookings table back to empty):
+
+| Branch | Result |
+|---|---|
+| New booking → client ack + business alert | ✅ both accepted by EmailJS |
+| Partner confirms → client told | ✅ `status=confirmed`, email sent |
+| Partner declines with reason → client told | ✅ `cancelled_by=partner`, reason + timestamp stored |
+| Client cancels → business told | ✅ `cancelled_by=customer`, notice sent to venue |
+| Stranger tries to confirm | ✅ denied |
+| Another customer tries to cancel | ✅ denied |
+
+Five real emails delivered. The bug that made this possible was found by the test tool
+itself: `EMAILJS_TEMPLATE_NOTIFY` was declared-but-blank in `.env.local`, and `??` only
+falls back on null/undefined, so the template ID resolved to `""` and every send bailed
+at the guard without logging. Fixed with `||` plus a log line naming the missing
+variable (`fc7a009`).
+
+**Email side of #8 is now genuinely live.** Remaining: no SMS provider chosen, and the
+one business row still has `phone = null`.
