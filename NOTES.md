@@ -1451,3 +1451,38 @@ User-driven refinement loop: discuss → decide → build → user tests live. D
 5. `NEXT_PUBLIC_APP_URL` on Vercel still points at the wrong domain (`-cameroon` instead of `-came`) — fix or skip if buying real domain.
 
 ---
+### 2026-08-05 — Session 24: "Complete booking site" pass — trust fixes, booking loop, diaspora gifting v1
+
+Input: three external product reviews pasted into CLAUDE.md (all converge on the same gaps). Scope agreed with user: Phase 1 trust fixes → Phase 2 booking loop → Phase 3 diaspora gifting v1 (the user's favourite idea, review §3.8). Campay payments deliberately deferred to a later phase (needs account + API routes/webhooks — none exist yet).
+
+**Phase 1 — Trust & integrity:**
+1. **Fake seeded trust signals removed** (the #1 reviewer complaint: "4.9 (234 reviews)" card vs "No reviews yet" on the same listing). Ran `src/db/reset-seed-trust.ts` against prod: all 16 seeded listings (business_id IS NULL) now rating=0, review_count=0, verified=false — they render "Nouveau/New", consistent everywhere. `seed.ts` hardened so reseeds can never write fake aggregates again. Side effect: "Partenaires Vérifiés" curated collection disappears until real verified partners exist (by design — the badge must mean something). Seed-deletion plan from Session 23 unchanged.
+2. **Footer dead links fixed** — every link real now: Explore column deep-links into browse via `/?category=X#browse` (read on mount by SearchFilterSection), Partners column → /business, /dashboard, /business/sign-in, Company → /about (NEW translated page), /contact, /privacy, /terms. Dead social icons removed until real profiles exist. /about added to sitemap.
+3. **i18n gaps closed** (Session 22/23 backlog): hero headline/subtitle, CategorySwitcher pills, listing page ("Booking Details", Location, Price, Rating/Reviews/Type strip, Reviews heading, "Response from the business", review dates now fr-FR/en-GB, WhatsApp prefill message bilingual), navbar Dashboard + aria labels, favorites "Back to listings" + category badges via t(), profile guest pluralisation, card amenity chips via amenityLabel().
+4. **Cancellation policy** now visible on the listing detail sidebar (same `free_cancellation` copy as checkout), not just at checkout.
+
+**Phase 2 — Booking loop:**
+5. **Hero search is real** — submit button; maps hero tab → browse category (nightlife/accommodation/events-venues), recognises city names (accent-insensitive → city filter), otherwise text search; smooth-scrolls to #browse. Date/guest hero fields still cosmetic (availability-filtered search across listings = future work).
+6. **City filter** added to browse section (new `cityFilter` in useBrowseStore, wired into ConditionalCuratedCollections too). Deep links: `/?category=&city=&q=#browse`.
+7. **Booking form is availability-aware** — book/page.tsx now fetches blocked dates (+ booked dates for accommodation) and BookingPage validates the selected range client-side BEFORE submit (inline error, submit disabled). Server-side conflict check unchanged as the authority.
+8. **Server-side price recompute** — createBooking no longer trusts client totals: fetches priceMin/capacity, validates guests 1..capacity, dates not past, checkout>checkin, recomputes subtotal + 7% fee. Client totals removed from the input type entirely. Returns bookingRef + server total.
+9. **Honest confirmation** — CTA is now "Confirmer la réservation — X XAF" (was "Payer X" with no payment rails!). New payment note: "règlement auprès de l'établissement pour le moment". Confirmation modal shows the BOOKING REFERENCE prominently (+ "show on arrival" note), server-computed total as "Total à régler" (was "Total payé" — false), WhatsApp share button (prefilled summary; for gifts targets the beneficiary's number), "Voir mes réservations" when signed in.
+
+**Phase 3 — Diaspora gifting v1 (no payment rails needed):**
+10. **Migration 0003_diaspora_gifting.sql applied to prod** (same manual pattern as 0002, via src/db/apply-0003.ts): bookings + is_gift, booker_name, booker_email, booker_phone, gift_message. Convention: when is_gift, guest_* = BENEFICIARY in Cameroon, booker_* = PAYER (diaspora).
+11. **Gift flow in checkout** — "Je réserve pour un proche au Cameroun" toggle → beneficiary name/phone section + payer (name/phone/email) section + optional gift message. Validation covers both parties. Confirmation email goes to the payer; partner email shows the beneficiary as arriving guest (+ gift note). ReservationsManager: gift badge on the row + "Réservé par {payer} ({phone})" block + gift message. Profile: gift badge + beneficiary name on the booking card.
+12. **EUR/USD price transparency** — `formatDiasporaEquivalent()` in lib/formatPrice.ts. XAF→EUR is EXACT (fixed BEAC peg 655.957, no FX API); USD indicative via EUR_PER_USD_APPROX=0.92 constant (update occasionally). Shown on listing sidebar under the XAF price and under the checkout total with "Montant indicatif — le paiement s'effectue en XAF".
+
+**Gotchas / notes:**
+- `npm run lint` is broken (pre-existing): eslint-config-next@15.1.0 flat-config import fails under ESLint 9/Next 16. Build + TypeScript pass clean; fix the lint setup some session (bump eslint-config-next to 16.x).
+- drizzle migration journal still doesn't know 0002/0003 (hand-applied). If drizzle-kit generate is ever used again, reconcile snapshots first.
+- WhatsApp "share" is a wa.me deep link, not the WhatsApp Business API — real push notifications remain future work (Campay phase or after).
+- EmailJS templates unchanged; gift bookings reuse them (gift note appended to listing_name param). Dedicated gift template = nice-to-have.
+
+**NEXT SESSION backlog (priority order):**
+1. User tests the whole loop on prod: search → filter → listing → book (normal + gift) → partner confirms in dashboard → review.
+2. Campay integration phase (needs: Campay account + API keys, first API routes + webhook, paymentStatus transitions, campay_ref).
+3. Session 23 leftovers still open: landing refinement walk, video upload e2e human test, NEXT_PUBLIC_APP_URL wrong domain on Vercel.
+4. Future gifting v2: international card payments for diaspora (Campay alone won't cover foreign cards — evaluate Flutterwave/Stripe alongside).
+
+---
