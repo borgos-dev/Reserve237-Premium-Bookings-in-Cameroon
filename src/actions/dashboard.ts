@@ -23,6 +23,7 @@ export interface DashboardStats {
   weeklyData: WeekDay[]
   // Onboarding checklist flags
   hasPhotos: boolean           // at least one listing has a photo uploaded
+  hasPriceSet: boolean         // at least one listing has a price — required to be bookable online
   hasAvailabilitySet: boolean  // at least one availability rule exists
   hasProfileComplete: boolean  // business has phone or WhatsApp set
 }
@@ -72,18 +73,19 @@ export async function getDashboardStats(userId: string): Promise<DashboardStats>
       totalListings: 0, activeListings: 0, todayBookings: 0,
       pendingBookings: 0, totalRevenueXaf: 0,
       recentBookings: [], weeklyData: emptyWeek(),
-      hasPhotos: false, hasAvailabilitySet: false, hasProfileComplete: false,
+      hasPhotos: false, hasPriceSet: false, hasAvailabilitySet: false, hasProfileComplete: false,
     }
   }
 
   const partnerListings = await db
-    .select({ id: listings.id, name: listings.name, active: listings.active })
+    .select({ id: listings.id, name: listings.name, active: listings.active, priceMin: listings.priceMin })
     .from(listings)
     .where(eq(listings.businessId, business.id))
 
   const listingIds = partnerListings.map((l) => l.id)
   const totalListings = partnerListings.length
   const activeListings = partnerListings.filter((l) => l.active).length
+  const hasPriceSet = partnerListings.some((l) => l.priceMin != null && l.priceMin > 0)
 
   // Get full business record to check profile completeness
   const [businessData] = await db
@@ -99,7 +101,7 @@ export async function getDashboardStats(userId: string): Promise<DashboardStats>
       totalListings, activeListings, todayBookings: 0,
       pendingBookings: 0, totalRevenueXaf: 0,
       recentBookings: [], weeklyData: emptyWeek(),
-      hasPhotos: false, hasAvailabilitySet: false, hasProfileComplete,
+      hasPhotos: false, hasPriceSet: false, hasAvailabilitySet: false, hasProfileComplete,
     }
   }
 
@@ -219,6 +221,7 @@ export async function getDashboardStats(userId: string): Promise<DashboardStats>
     recentBookings,
     weeklyData,
     hasPhotos: photoCheck.length > 0,
+    hasPriceSet,
     hasAvailabilitySet: availCheck.length > 0,
     hasProfileComplete,
   }

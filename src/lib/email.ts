@@ -34,6 +34,32 @@ async function sendEmail(templateId: string, params: Record<string, string | num
   }
 }
 
+// ─── Team inbox notification ──────────────────────────────────────────────────
+// Reuses the contact-form template (same fields, same destination inbox) so
+// operational alerts don't need a separate EmailJS template to be configured.
+
+export interface TeamNotificationData {
+  name: string
+  email: string
+  phone?: string | null
+  subject: string
+  message: string
+}
+
+export async function sendTeamNotification(data: TeamNotificationData): Promise<void> {
+  const templateId = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID
+  if (!templateId) return
+
+  await sendEmail(templateId, {
+    name: data.name,
+    email: data.email,
+    phone: data.phone ?? '',
+    subject: data.subject,
+    message: data.message,
+    reply_to: data.email,
+  })
+}
+
 export interface BookingEmailData {
   customerEmail: string
   customerName: string

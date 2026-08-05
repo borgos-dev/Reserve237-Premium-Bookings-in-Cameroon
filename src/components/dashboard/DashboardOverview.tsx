@@ -88,6 +88,14 @@ function OnboardingChecklist({ stats }: { stats: DashboardStats }) {
       cta: t("ov_step_listing_cta"),
     },
     {
+      // No price = the listing is contact-only and earns no online bookings
+      done: stats.hasPriceSet,
+      label: t("ov_step_price"),
+      sub: t("ov_step_price_sub"),
+      href: "/dashboard/listings",
+      cta: t("ov_step_price_cta"),
+    },
+    {
       done: stats.hasPhotos,
       label: t("ov_step_photos"),
       sub: t("ov_step_photos_sub"),
@@ -186,10 +194,11 @@ function OnboardingChecklist({ stats }: { stats: DashboardStats }) {
 export function DashboardOverview({ stats }: DashboardOverviewProps) {
   const { t } = useLanguage();
   const [search, setSearch] = useState("");
-  // Show checklist until all 5 setup steps are complete
+  // Show checklist until all setup steps are complete
   const isNewPartner =
     stats.totalListings === 0 ||
     !stats.hasPhotos ||
+    !stats.hasPriceSet ||
     !stats.hasAvailabilitySet ||
     !stats.hasProfileComplete;
 

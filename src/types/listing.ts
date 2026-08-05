@@ -28,6 +28,7 @@ export interface PublicListing {
   priceRange: string | null     // budget | mid-range | premium | luxury
   verified: boolean
   featured: boolean
+  hasBusiness: boolean          // true = real partner listing; false = seeded demo content
   amenities: string[]
   capacity: number | null       // max guests per booking (from details JSONB)
   services: ListingService[]    // priced services/menu items (from details JSONB)

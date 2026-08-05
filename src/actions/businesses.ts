@@ -5,6 +5,7 @@ import { businesses, users, listings, SUB_CATEGORIES, type MainCategory } from '
 import { eq } from 'drizzle-orm'
 import { currentUser } from '@clerk/nextjs/server'
 import { uniqueSlug } from './listings'
+import { sendTeamNotification } from '@/lib/email'
 
 // ─── Get or auto-create a business for a partner ──────────────────────────────
 
@@ -204,6 +205,62 @@ export async function updateBusinessProfile(
   } catch (err) {
     console.error('[updateBusinessProfile]', err)
     return { success: false, error: 'Failed to update profile.' }
+  }
+}
+
+// ─── Request the "Verified partner" badge ─────────────────────────────────────
+// Partners can't grant themselves the badge — this only records the request and
+// alerts the team, who verify in person and approve via src/db/approve-verification.ts.
+
+export async function requestVerification(
+  userId: string
+): Promise<{ success: boolean; requestedAt?: string; error?: string }> {
+  try {
+    const [business] = await db
+      .select()
+      .from(businesses)
+      .where(eq(businesses.ownerId, userId))
+      .limit(1)
+
+    if (!business) return { success: false, error: 'Business not found.' }
+    if (business.verified) return { success: false, error: 'Already verified.' }
+
+    // Re-sending refreshes the timestamp so the team sees the latest nudge.
+    const requestedAt = new Date()
+    await db
+      .update(businesses)
+      .set({ verificationRequestedAt: requestedAt, updatedAt: requestedAt })
+      .where(eq(businesses.ownerId, userId))
+
+    const [listingCount] = await db
+      .select({ id: listings.id })
+      .from(listings)
+      .where(eq(listings.businessId, business.id))
+      .limit(1)
+
+    await sendTeamNotification({
+      name: business.name,
+      email: business.email ?? '',
+      phone: business.phone ?? business.whatsapp,
+      subject: `Verification request — ${business.name}`,
+      message: [
+        `Business: ${business.name}`,
+        `Category: ${business.mainCategory ?? '—'}`,
+        `Location: ${[business.neighborhood, business.city].filter(Boolean).join(', ') || '—'}`,
+        `Landmark: ${business.landmark ?? '—'}`,
+        `Phone: ${business.phone ?? '—'}  ·  WhatsApp: ${business.whatsapp ?? '—'}`,
+        `Email: ${business.email ?? '—'}`,
+        `Has listings: ${listingCount ? 'yes' : 'no'}`,
+        `Business ID: ${business.id}`,
+        '',
+        'Approve with: npx tsx src/db/approve-verification.ts <business-id>',
+      ].join('\n'),
+    })
+
+    return { success: true, requestedAt: requestedAt.toISOString() }
+  } catch (err) {
+    console.error('[requestVerification]', err)
+    return { success: false, error: 'Failed to send the request.' }
   }
 }
 

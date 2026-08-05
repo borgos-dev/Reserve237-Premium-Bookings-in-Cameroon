@@ -22,9 +22,14 @@ import {
   RiPhoneLine,
   RiMailLine,
   RiDeleteBinLine,
+  RiShieldCheckLine,
 } from "react-icons/ri";
 import { SiTiktok } from "react-icons/si";
-import { updateBusinessProfile, type UpdateBusinessInput } from "@/actions/businesses";
+import {
+  updateBusinessProfile,
+  requestVerification,
+  type UpdateBusinessInput,
+} from "@/actions/businesses";
 import { deleteBusinessAccount } from "@/actions/account";
 import type { Business } from "@/db/schema/businesses";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -115,11 +120,19 @@ function SectionCard({ title, subtitle, children }: {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function SettingsManager({ userId, userEmail, userName, business }: SettingsManagerProps) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const router = useRouter();
   const { user } = useUser();
 
   const [tab, setTab] = useState<Tab>("profile");
+
+  // ── Verification state ────────────────────────────────────────────────────
+
+  const [verifRequestedAt, setVerifRequestedAt] = useState<string | null>(
+    business?.verificationRequestedAt ? new Date(business.verificationRequestedAt).toISOString() : null
+  );
+  const [verifSending, setVerifSending] = useState(false);
+  const [verifFeedback, setVerifFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
   // ── Profile state ─────────────────────────────────────────────────────────
 
@@ -197,6 +210,19 @@ export function SettingsManager({ userId, userEmail, userName, business }: Setti
         ? { type: "success", msg: t("set_profile_saved") }
         : { type: "error", msg: result.error ?? t("set_save_failed") }
     );
+  }
+
+  async function askVerification() {
+    setVerifSending(true);
+    setVerifFeedback(null);
+    const result = await requestVerification(userId);
+    setVerifSending(false);
+    if (result.success) {
+      setVerifRequestedAt(result.requestedAt ?? new Date().toISOString());
+      setVerifFeedback({ type: "success", msg: t("verif_sent_ok") });
+    } else {
+      setVerifFeedback({ type: "error", msg: result.error ?? t("verif_failed") });
+    }
   }
 
   async function saveSocial(e: React.FormEvent) {
@@ -323,6 +349,54 @@ export function SettingsManager({ userId, userEmail, userName, business }: Setti
       </div>
 
       {/* ─────────────────── TAB: Business profile ─────────────────── */}
+      {tab === "profile" && (
+        <div className="mb-5">
+          {business?.verified ? (
+            <div className="flex items-center gap-3 px-5 py-4 rounded-xl bg-[#13695A]/8 border border-[#13695A]/20">
+              <RiShieldCheckLine className="w-5 h-5 text-[#13695A] shrink-0" />
+              <p className="text-[#13695A] text-sm font-semibold">{t("verif_verified")}</p>
+            </div>
+          ) : (
+            <SectionCard title={t("verif_title")}>
+              {verifFeedback && <Feedback type={verifFeedback.type} message={verifFeedback.msg} />}
+
+              <p className="text-[#1F2A2A]/60 text-sm leading-relaxed">{t("verif_desc")}</p>
+
+              {verifRequestedAt ? (
+                <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-[#E8B923]/10 border border-[#E8B923]/30">
+                  <RiShieldCheckLine className="w-4 h-4 text-[#1F2A2A]/60 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-[#1F2A2A] text-sm font-medium">
+                      {t("verif_requested_on")}{" "}
+                      {new Date(verifRequestedAt).toLocaleDateString(lang === "fr" ? "fr-FR" : "en-GB", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </p>
+                    <p className="text-[#1F2A2A]/50 text-xs mt-0.5">{t("verif_requested_note")}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={askVerification}
+                    disabled={verifSending}
+                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#13695A] hover:bg-[#0A5C4A] text-white text-sm font-semibold transition-colors disabled:opacity-50"
+                  >
+                    {verifSending
+                      ? <><RiLoader4Line className="w-4 h-4 animate-spin" /> {t("verif_requesting")}</>
+                      : <><RiShieldCheckLine className="w-4 h-4" /> {t("verif_request_btn")}</>
+                    }
+                  </button>
+                </div>
+              )}
+            </SectionCard>
+          )}
+        </div>
+      )}
+
       {tab === "profile" && (
         <form onSubmit={saveProfile}>
           <SectionCard

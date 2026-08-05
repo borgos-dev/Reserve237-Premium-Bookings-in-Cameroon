@@ -795,6 +795,26 @@ export const translations = {
       "Offrez un séjour ou un dîner à un proche au Cameroun — vous payez, il ou elle en profite. Prix aussi en € et $.",
     about_explore_categories: "Explorez nos catégories",
 
+    // ── Partner onboarding & visibility ──────────────────────────────────────
+    ov_step_price: "Définissez votre prix",
+    ov_step_price_sub:
+      "Sans prix, votre annonce n'est pas réservable en ligne — les clients ne peuvent que vous contacter.",
+    ov_step_price_cta: "Ajouter un prix",
+    collection_new: "Nouveaux sur Reserve237",
+    collection_new_sub: "Les dernières adresses à rejoindre la plateforme",
+
+    // ── Verification ─────────────────────────────────────────────────────────
+    verif_title: "Vérification Reserve237",
+    verif_desc:
+      "Le badge « Partenaire vérifié » indique que notre équipe a confirmé votre établissement. Envoyez votre demande et nous vous contacterons pour organiser la vérification.",
+    verif_request_btn: "Demander la vérification",
+    verif_requesting: "Envoi…",
+    verif_requested_on: "Demande envoyée le",
+    verif_requested_note: "Notre équipe vous contactera rapidement.",
+    verif_verified: "Votre établissement est vérifié",
+    verif_sent_ok: "Demande envoyée ! Nous vous contacterons rapidement.",
+    verif_failed: "Échec de l'envoi de la demande. Veuillez réessayer.",
+
     // ── Consent banner ───────────────────────────────────────────────────────
     consent_title: "Votre confidentialité",
     consent_text_1: "En utilisant Reserve237, vous acceptez nos",
@@ -1622,6 +1642,26 @@ export const translations = {
     about_v4_body:
       "Treat a loved one in Cameroon to a stay or a dinner — you pay, they enjoy. Prices also in € and $.",
     about_explore_categories: "Explore our categories",
+
+    // ── Partner onboarding & visibility ──────────────────────────────────────
+    ov_step_price: "Set your price",
+    ov_step_price_sub:
+      "Without a price your listing can't be booked online — customers can only contact you.",
+    ov_step_price_cta: "Add a price",
+    collection_new: "New on Reserve237",
+    collection_new_sub: "The latest places to join the platform",
+
+    // ── Verification ─────────────────────────────────────────────────────────
+    verif_title: "Reserve237 verification",
+    verif_desc:
+      "The \"Verified partner\" badge shows our team has confirmed your venue. Send your request and we'll contact you to arrange the verification.",
+    verif_request_btn: "Request verification",
+    verif_requesting: "Sending…",
+    verif_requested_on: "Request sent on",
+    verif_requested_note: "Our team will contact you shortly.",
+    verif_verified: "Your business is verified",
+    verif_sent_ok: "Request sent! We'll contact you shortly.",
+    verif_failed: "Failed to send the request. Please try again.",
 
     // ── Consent banner ───────────────────────────────────────────────────────
     consent_title: "Your privacy",

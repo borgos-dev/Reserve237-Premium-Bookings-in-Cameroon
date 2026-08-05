@@ -34,6 +34,10 @@ export function CuratedCollections({ listings }: Props) {
     const accommodation = byRating
       .filter((l) => l.mainCategory === "accommodation")
       .slice(0, 3);
+    // Newest real-partner listings (input is createdAt-ascending). Guarantees
+    // fresh partners a homepage slot immediately — rating-sorted collections
+    // would otherwise bury a brand-new listing at rating 0.
+    const newest = listings.filter((l) => l.hasBusiness).slice(-3).reverse();
 
     const all = [
       featured.length >= 2 && {
@@ -41,6 +45,14 @@ export function CuratedCollections({ listings }: Props) {
         title: t("collection_top_picks"),
         subtitle: t("collection_top_picks_sub"),
         items: featured,
+      },
+      // Deliberately shown even with a single item — the first partners
+      // deserve the visibility, and it signals a living marketplace.
+      newest.length >= 1 && {
+        id: "new",
+        title: t("collection_new"),
+        subtitle: t("collection_new_sub"),
+        items: newest,
       },
       yaounde.length >= 2 && {
         id: "yaounde",

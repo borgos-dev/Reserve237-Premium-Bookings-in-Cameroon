@@ -27,6 +27,8 @@ export const businesses = pgTable('businesses', {
   // Status
   verified: boolean('verified').default(false).notNull(),
   verifiedAt: timestamp('verified_at'),
+  // Partner asked for the verified badge; team follows up manually
+  verificationRequestedAt: timestamp('verification_requested_at'),
   plan: text('plan', { enum: ['free', 'basic', 'premium'] })
     .default('free')
     .notNull(),

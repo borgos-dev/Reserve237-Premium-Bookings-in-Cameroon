@@ -1486,3 +1486,42 @@ Input: three external product reviews pasted into CLAUDE.md (all converge on the
 4. Future gifting v2: international card payments for diaspora (Campay alone won't cover foreign cards — evaluate Flutterwave/Stripe alongside).
 
 ---
+
+## Session 25 — Business side: partner audit + first two fixes (2026-08-05)
+
+User asked to "go to the business side, check if all flow work, and walk me through as a business
+integrating the platform". Audited the full partner journey, then built the two items the user picked
+from the findings (explicitly NOT review replies, NOT hiding the dead Withdraw/Promo buttons).
+
+**Built:**
+1. **Price step in the onboarding checklist.** `DashboardStats.hasPriceSet` (any listing with
+   `priceMin > 0`) added in actions/dashboard.ts and surfaced as a new checklist step between
+   "listing" and "photos", plus folded into `isNewPartner`. Root problem it fixes: sign-up
+   pre-creates a listing with NO price, and a listing with no price is contact-only — it renders but
+   can never produce an online booking. Nothing in the dashboard said so.
+2. **New-partner homepage visibility.** `PublicListing.hasBusiness` (`businessId != null`) added to
+   the type and all three mappers in actions/listings.ts. CuratedCollections gained a
+   "Nouveaux sur Reserve237" collection = last 3 real-partner listings, newest first, shown at >= 1
+   item. Root problem: every other collection sorts by rating, and a brand-new listing is rating 0,
+   so a new partner was mathematically invisible on the homepage until they had reviews.
+3. **Request-verification flow.** Migration `0004_verification_request.sql` (businesses +
+   `verification_requested_at`) applied to prod via `src/db/apply-0004.ts`. New
+   `requestVerification(userId)` server action records the timestamp and emails the team inbox via
+   `sendTeamNotification()` (new helper in lib/email.ts that reuses the CONTACT EmailJS template —
+   no new template to configure). Settings > Profile tab shows a verification card: request button →
+   "requested on <date>" state → replaced by a verified banner once granted. Approval stays manual:
+   `npx tsx src/db/approve-verification.ts` lists pending requests, `... <business-id>` grants the
+   badge on the business AND all its listings, `--revoke` reverses it. Partners can never
+   self-verify — the badge is the platform's own promise.
+
+**Audit findings NOT yet fixed (ordered by how much they break the loop):**
+- **The customer is never told when the partner confirms or declines.** `updateBookingStatus` only
+  writes the row — no email, no WhatsApp. The customer books, gets a "pending" confirmation, and
+  then nothing ever arrives. This is the biggest hole in the booking loop. Needs an EmailJS template
+  + a call in updateBookingStatus (and ideally a wa.me link in ReservationsManager).
+- Dashboard "Withdraw" and "Promo" buttons do nothing (user chose to keep them visible for now).
+- Partners cannot reply to reviews (user deferred).
+- Partner sign-up + Settings still offer only 6 hardcoded cities/neighborhoods, so the data-derived
+  city pills on the homepage can never show a 7th city.
+- Payout promise in Terms ("MoMo within 48h of confirmation") has no mechanism behind it — Campay
+  phase. Same for the 7% fee: it is computed and stored, never collected.
