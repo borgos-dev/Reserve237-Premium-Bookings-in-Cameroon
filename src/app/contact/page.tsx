@@ -40,34 +40,27 @@ export default function ContactPage() {
     const serviceId = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID;
     const templateId = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID;
     const publicKey = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY;
-    const teamEmail = process.env.NEXT_PUBLIC_TEAM_EMAIL;
 
-    if (!serviceId || !templateId || !publicKey || !teamEmail) {
+    if (!serviceId || !templateId || !publicKey) {
       setError(t("contact_not_configured"));
       setLoading(false);
       return;
     }
 
     try {
-      // The shared EmailJS template is a bare shell (to_email / subject /
-      // message), so the sender's details go inside the body rather than into
-      // template fields of their own. See src/lib/email.ts for why.
+      // Keeps its own purpose-built template (name / email / phone / subject /
+      // message fields, styled reply + call-back buttons). Booking mail uses a
+      // separate generic template — see EMAILJS_TEMPLATE_NOTIFY in lib/email.ts.
       await emailjs.send(
         serviceId,
         templateId,
         {
-          to_email: teamEmail,
-          to_name: "Reserve237",
+          name: form.name,
+          email: form.email,
+          phone: form.phone,
           subject: form.subject,
+          message: form.message,
           reply_to: form.email,
-          message: [
-            `From: ${form.name} <${form.email}>`,
-            form.phone ? `Phone: ${form.phone}` : null,
-            "",
-            form.message,
-          ]
-            .filter((line) => line !== null)
-            .join("\n"),
         },
         { publicKey },
       );

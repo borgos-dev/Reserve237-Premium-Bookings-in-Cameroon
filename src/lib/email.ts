@@ -1,9 +1,9 @@
 // EmailJS REST API — works server-side (no browser SDK needed)
 //
 // ─── One template, on purpose ────────────────────────────────────────────────
-// EmailJS caps how many templates an account may hold (two on the free plan),
-// and this platform needs at least five distinct emails. So Reserve237 sends
-// everything through a single template configured as a bare shell:
+// EmailJS caps how many templates an account may hold, and this platform needs
+// at least five distinct emails. So every notification — client, business, team
+// — goes through ONE template configured as a bare shell:
 //
 //     To         {{to_email}}
 //     Reply-To   {{reply_to}}
@@ -13,6 +13,11 @@
 // Every word a recipient reads is composed below, in TypeScript. Adding a new
 // kind of email costs nothing in the dashboard, and the copy lives in source
 // that can be reviewed and diffed instead of a web form that cannot.
+//
+// EMAILJS_TEMPLATE_NOTIFY names that shell. It falls back to the contact-form
+// template only so a half-configured account still sends something; when the
+// account has a spare slot, give notifications their own template and leave the
+// contact form's bespoke design alone.
 const EMAILJS_API = 'https://api.emailjs.com/api/v1.0/email/send'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://reserve237.com'
@@ -45,7 +50,8 @@ export interface Mail {
 export async function sendMail(mail: Mail): Promise<boolean> {
   const serviceId = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID
   const publicKey = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY
-  const templateId = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID
+  const templateId =
+    process.env.EMAILJS_TEMPLATE_NOTIFY ?? process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID
   const privateKey = process.env.EMAILJS_PRIVATE_KEY
 
   if (!serviceId || !publicKey || !templateId || !mail.to) return false
