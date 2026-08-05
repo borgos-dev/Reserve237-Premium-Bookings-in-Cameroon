@@ -235,52 +235,11 @@ These are the UX gaps identified from a full flow walkthrough (2026-06-01):
 
 **EmailJS Templates to create:**
 
-Go to emailjs.com → Email Templates → Create Template
-
-**Template 1 — Customer booking confirmation** (save the ID as `EMAILJS_TEMPLATE_BOOKING_CUSTOMER`):
-```
-Subject: Your booking at {{listing_name}} is confirmed — Reserve237
-Body:
-Hi {{to_name}},
-
-Your booking has been received and is pending confirmation.
-
-📋 Booking reference: {{booking_ref}}
-🏢 Listing: {{listing_name}}
-📅 Date: {{dates}}
-👥 Guests: {{guests}}
-💰 Total: {{total}}
-💳 Payment: {{payment_method}}
-
-The business will confirm your booking shortly. You can view your bookings at reserve237.com/profile.
-
-Thank you for using Reserve237!
-```
-
-**Template 2 — Partner new booking alert** (save the ID as `EMAILJS_TEMPLATE_BOOKING_PARTNER`):
-```
-Subject: New booking at {{listing_name}} — Reserve237
-Body:
-Hi {{to_name}},
-
-You have a new booking request!
-
-📋 Booking reference: {{booking_ref}}
-🏢 Your listing: {{listing_name}}
-📅 Date: {{dates}}
-👥 Guests: {{guests}}
-💰 Total: {{total}}
-💳 Payment: {{payment_method}}
-
-Customer contact:
-- Name: {{customer_name}}
-- Phone: {{customer_phone}}
-- Email: {{customer_email}}
-
-Log in to your dashboard to confirm or reject this booking: reserve237.com/dashboard/reservations
-```
-
-After creating both templates, paste their IDs into .env.local.
+> ⚠️ **Superseded on 2026-08-05.** These two templates were never created — the env
+> vars sat empty and no booking email was ever delivered. EmailJS caps template count
+> (two on the free plan) and this platform needs five distinct emails, so the whole
+> approach was replaced by a single generic template. See "Session 27" at the bottom
+> of this file for the configuration that is actually in use.
 
 ### 2026-06-02 — FR/EN Bilingual (before Batch 2)
 
@@ -1587,3 +1546,62 @@ own booking but not someone else's; a past-dated booking is refused.
 - Partner sign-up + Settings still offer only 6 hardcoded cities, capping the homepage city pills.
 - No date / price / rating filters in browse (all three external reviewers flagged this).
 - Payout promise in Terms and the 7% fee still have no mechanism — Campay phase.
+
+---
+
+## Session 27 — One EmailJS template for everything (2026-08-05)
+
+**The wall.** Session 26 shipped the booking notification loop but left three setup
+tasks. The first one was impossible: EmailJS allows two templates on the free plan and
+the code referenced four (`NEXT_PUBLIC_EMAILJS_TEMPLATE_ID`, `..._BOOKING_CUSTOMER`,
+`..._BOOKING_PARTNER`, `..._BOOKING_STATUS`). Checking `.env.local` showed why nothing
+had ever arrived: both booking template vars were empty strings. **No booking email has
+ever been sent by this platform.** `sendEmail()` returned early on a falsy template ID,
+silently, so it looked healthy.
+
+**The fix — collapse four templates into one.** `src/lib/email.ts` now sends everything
+through the single template the account already owns. That template is a bare shell:
+
+| Field    | Value          |
+|----------|----------------|
+| To       | `{{to_email}}` |
+| Reply-To | `{{reply_to}}` |
+| Subject  | `{{subject}}`  |
+| Content  | `{{message}}`  |
+
+All wording is composed in TypeScript. A new email type now costs zero dashboard work,
+and the copy is diffable in source instead of buried in a web form.
+
+**Changes:**
+1. `src/lib/email.ts` rewritten around `sendMail({ to, toName, subject, body, replyTo })`.
+   Public signatures kept identical (`sendBookingEmails`, `sendBookingStatusEmail`,
+   `sendBookingNoticeEmail`, `sendTeamNotification`) so no caller changed.
+2. **Bug fixed:** `sendEmail()` did `await fetch(...)` without checking `res.ok`, so an
+   EmailJS rejection was invisible. `sendMail()` now logs status + body and returns a
+   boolean.
+3. **Bug fixed:** server-side EmailJS calls need *Account → Security → Allow EmailJS API
+   for non-browser applications*, and in strict mode also the private key. `sendMail()`
+   sends `accessToken` when `EMAILJS_PRIVATE_KEY` is set.
+4. Booking copy rewritten FR-first, then EN. The customer email now says the request was
+   *transmitted* to the venue and awaits its answer — it never implies Reserve237
+   accepted anything. Every email carries the venue's phone number.
+5. `src/app/contact/page.tsx` sends `to_email` (from `NEXT_PUBLIC_TEAM_EMAIL`) and folds
+   the sender's name/email/phone into `message`, since the shared template has no fields
+   of its own for them.
+6. `scripts/check-notifications.ts` + `npm run notify:test -- <email> <phone>` — prints
+   which env vars are missing and sends one real email and one real SMS. Necessary
+   because both channels fail silently by design.
+7. `.env.local`: dropped `EMAILJS_TEMPLATE_BOOKING_CUSTOMER` / `_PARTNER`, added
+   `EMAILJS_PRIVATE_KEY`, `NEXT_PUBLIC_TEAM_EMAIL`, and the SMS block.
+
+**Dashboard steps the user must do once** (EmailJS → Email Templates → `template_87jrdke`):
+set To/Reply-To/Subject/Content to the four variables in the table above, save, then
+Account → Security → allow the API for non-browser applications.
+
+**Verified:** `npx tsc --noEmit` clean; `npm run build` passes. End-to-end delivery is
+*not* verified — it cannot be until the template is reconfigured in the dashboard.
+
+**Still open:** SMS provider undecided (Twilio reaches +237 but over international
+routes at international prices with no local sender ID; a Cameroonian aggregator through
+`SMS_PROVIDER=generic` is the better fit). The one business row in prod still has
+`phone = null`, so it has no SMS destination. `npm run lint` still broken.

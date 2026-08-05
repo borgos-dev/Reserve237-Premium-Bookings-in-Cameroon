@@ -1,5 +1,21 @@
 // EmailJS REST API — works server-side (no browser SDK needed)
+//
+// ─── One template, on purpose ────────────────────────────────────────────────
+// EmailJS caps how many templates an account may hold (two on the free plan),
+// and this platform needs at least five distinct emails. So Reserve237 sends
+// everything through a single template configured as a bare shell:
+//
+//     To         {{to_email}}
+//     Reply-To   {{reply_to}}
+//     Subject    {{subject}}
+//     Content    {{message}}
+//
+// Every word a recipient reads is composed below, in TypeScript. Adding a new
+// kind of email costs nothing in the dashboard, and the copy lives in source
+// that can be reviewed and diffed instead of a web form that cannot.
 const EMAILJS_API = 'https://api.emailjs.com/api/v1.0/email/send'
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://reserve237.com'
 
 const PAYMENT_LABELS: Record<string, string> = {
   'mtn-momo': 'MTN MoMo',
@@ -12,31 +28,64 @@ function fmtXAF(n: number): string {
   return new Intl.NumberFormat('fr-CM').format(Math.round(n)) + ' XAF'
 }
 
-async function sendEmail(templateId: string, params: Record<string, string | number>): Promise<void> {
+/** Drops empty lines that came from optional fields, keeps deliberate blanks. */
+function lines(...parts: (string | null | undefined | false)[]): string {
+  return parts.filter((p) => p !== null && p !== undefined && p !== false).join('\n')
+}
+
+export interface Mail {
+  to: string
+  toName?: string
+  subject: string
+  body: string
+  /** Where a reply should land — defaults to the recipient. */
+  replyTo?: string
+}
+
+export async function sendMail(mail: Mail): Promise<boolean> {
   const serviceId = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID
   const publicKey = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY
+  const templateId = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID
+  const privateKey = process.env.EMAILJS_PRIVATE_KEY
 
-  if (!serviceId || !publicKey || !templateId) return
+  if (!serviceId || !publicKey || !templateId || !mail.to) return false
 
   try {
-    await fetch(EMAILJS_API, {
+    const res = await fetch(EMAILJS_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         service_id: serviceId,
         template_id: templateId,
         user_id: publicKey,
-        template_params: params,
+        // EmailJS refuses calls that don't come from a browser unless the
+        // account opts in, and in strict mode it also wants the private key.
+        // Sending it whenever we have one satisfies both settings.
+        ...(privateKey ? { accessToken: privateKey } : {}),
+        template_params: {
+          to_email: mail.to,
+          to_name: mail.toName ?? '',
+          subject: mail.subject,
+          message: mail.body,
+          reply_to: mail.replyTo ?? mail.to,
+        },
       }),
     })
+
+    if (!res.ok) {
+      // Swallowing this is what let booking mail look healthy while delivering
+      // nothing — a bad status must always be visible in the logs.
+      console.error('[email] EmailJS rejected the message:', res.status, await res.text())
+      return false
+    }
+    return true
   } catch (err) {
-    console.error('[email] Failed to send:', templateId, err)
+    console.error('[email] Failed to send:', err)
+    return false
   }
 }
 
 // ─── Team inbox notification ──────────────────────────────────────────────────
-// Reuses the contact-form template (same fields, same destination inbox) so
-// operational alerts don't need a separate EmailJS template to be configured.
 
 export interface TeamNotificationData {
   name: string
@@ -47,27 +96,54 @@ export interface TeamNotificationData {
 }
 
 export async function sendTeamNotification(data: TeamNotificationData): Promise<void> {
-  const templateId = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID
-  if (!templateId) return
+  const inbox = process.env.TEAM_INBOX_EMAIL ?? process.env.NEXT_PUBLIC_TEAM_EMAIL
+  if (!inbox) return
 
-  await sendEmail(templateId, {
-    name: data.name,
-    email: data.email,
-    phone: data.phone ?? '',
+  await sendMail({
+    to: inbox,
+    toName: 'Reserve237',
     subject: data.subject,
-    message: data.message,
-    reply_to: data.email,
+    replyTo: data.email || undefined,
+    body: lines(
+      `From: ${data.name}${data.email ? ` <${data.email}>` : ''}`,
+      data.phone ? `Phone: ${data.phone}` : null,
+      '',
+      data.message,
+    ),
   })
+}
+
+// ─── Shared booking blocks ────────────────────────────────────────────────────
+
+function detailBlock(d: {
+  listingName: string
+  bookingRef: string
+  dates: string
+  guests: number
+  total?: string
+  paymentMethod?: string
+}): string {
+  return lines(
+    `— ${d.listingName}`,
+    `Référence / Reference : ${d.bookingRef}`,
+    `Date : ${d.dates}`,
+    `Personnes / Guests : ${d.guests}`,
+    d.total ? `Total : ${d.total}` : null,
+    d.paymentMethod ? `Paiement / Payment : ${d.paymentMethod}` : null,
+  )
+}
+
+/** Reserve237 never decides anything — every email points back to the venue. */
+function venueLine(phone?: string | null): string | null {
+  return phone
+    ? `\nUne question ? Appelez directement l'établissement au ${phone}.\nQuestions? Call the venue directly on ${phone}.`
+    : null
 }
 
 // ─── Booking outcome ──────────────────────────────────────────────────────────
 // The return leg of the conversation: the business answered, and the client has
 // to hear about it. Without this a client books, gets a "pending" email, and
 // never learns whether they have a table.
-//
-// Needs one EmailJS template exposed as EMAILJS_TEMPLATE_BOOKING_STATUS with
-// params: to_name, to_email, listing_name, booking_ref, dates, guests,
-// status_label, message. Unset → silent no-op, same as every other template.
 
 export interface BookingStatusEmailData {
   customerEmail: string
@@ -86,15 +162,15 @@ export interface BookingStatusEmailData {
 }
 
 const STATUS_LABELS: Record<string, string> = {
-  confirmed: 'Confirmed / Confirmée',
-  cancelled: 'Cancelled / Annulée',
-  completed: 'Completed / Terminée',
+  confirmed: 'Confirmée / Confirmed',
+  cancelled: 'Annulée / Cancelled',
+  completed: 'Terminée / Completed',
 }
 
 /**
- * Low-level sender for the status template. Addressed by to_email, so the same
- * template serves the client ("the venue confirmed you") and the business
- * ("your client cancelled") — one template to configure instead of two.
+ * Low-level sender for any booking notice. Addressed by recipient, so the same
+ * shape serves the client ("the venue confirmed you") and the business ("your
+ * client cancelled").
  */
 export async function sendBookingNoticeEmail(notice: {
   toEmail: string
@@ -106,56 +182,65 @@ export async function sendBookingNoticeEmail(notice: {
   statusLabel: string
   message: string
 }): Promise<void> {
-  const templateId = process.env.EMAILJS_TEMPLATE_BOOKING_STATUS
-  if (!templateId || !notice.toEmail) return
+  if (!notice.toEmail) return
 
-  await sendEmail(templateId, {
-    to_name: notice.toName,
-    to_email: notice.toEmail,
-    listing_name: notice.listingName,
-    booking_ref: notice.bookingRef,
-    dates: notice.dates,
-    guests: notice.guests,
-    status_label: notice.statusLabel,
-    message: notice.message,
+  await sendMail({
+    to: notice.toEmail,
+    toName: notice.toName,
+    subject: `${notice.statusLabel} — ${notice.listingName} (${notice.bookingRef})`,
+    body: lines(
+      `Bonjour ${notice.toName},`,
+      '',
+      notice.message,
+      '',
+      detailBlock(notice),
+      '',
+      'Reserve237',
+    ),
   })
 }
 
 function statusMessage(data: BookingStatusEmailData): string {
-  const contact = data.partnerPhone
-    ? `\n\nQuestions? Call the venue directly on ${data.partnerPhone}.`
-    : ''
+  const contact = venueLine(data.partnerPhone)
 
   if (data.status === 'confirmed') {
-    return (
-      `Good news — ${data.listingName} has confirmed your booking for ${data.dates}.\n` +
-      `Show reference ${data.bookingRef} on arrival.` +
-      contact +
-      `\n\nBonne nouvelle — ${data.listingName} a confirmé votre réservation pour ${data.dates}. ` +
-      `Présentez la référence ${data.bookingRef} à votre arrivée.`
+    return lines(
+      `Bonne nouvelle — ${data.listingName} a confirmé votre réservation pour ${data.dates}. ` +
+        `Présentez la référence ${data.bookingRef} à votre arrivée.`,
+      '',
+      `Good news — ${data.listingName} has confirmed your booking for ${data.dates}. ` +
+        `Show reference ${data.bookingRef} on arrival.`,
+      contact,
     )
   }
 
   if (data.status === 'cancelled') {
-    const who =
+    const fr =
+      data.cancelledBy === 'customer'
+        ? 'Votre réservation a été annulée à votre demande.'
+        : `${data.listingName} n'a pas pu honorer votre réservation du ${data.dates}.`
+    const en =
       data.cancelledBy === 'customer'
         ? 'Your booking has been cancelled as requested.'
         : `${data.listingName} could not honour your booking for ${data.dates}.`
-    const why = data.reason ? `\nReason: ${data.reason}` : ''
-    return (
-      `${who}${why}\nNo money has been taken.` +
-      contact +
-      `\n\nVotre réservation ${data.bookingRef} a été annulée.${
-        data.reason ? ` Motif : ${data.reason}` : ''
-      } Aucun montant n'a été prélevé.`
+    return lines(
+      fr,
+      data.reason ? `Motif : ${data.reason}` : null,
+      "Aucun montant n'a été prélevé.",
+      '',
+      en,
+      data.reason ? `Reason: ${data.reason}` : null,
+      'No money has been taken.',
+      contact,
     )
   }
 
-  return (
+  return lines(
+    `Merci d'avoir choisi ${data.listingName}. Votre réservation ${data.bookingRef} est terminée — ` +
+      `partagez votre avis.`,
+    '',
     `Thanks for visiting ${data.listingName}. Your booking ${data.bookingRef} is now complete — ` +
-    `we'd love to hear how it went.` +
-    `\n\nMerci d'avoir choisi ${data.listingName}. Votre réservation ${data.bookingRef} est terminée — ` +
-    `partagez votre avis.`
+      `we'd love to hear how it went.`,
   )
 }
 
@@ -171,6 +256,8 @@ export async function sendBookingStatusEmail(data: BookingStatusEmailData): Prom
     message: statusMessage(data),
   })
 }
+
+// ─── New booking ──────────────────────────────────────────────────────────────
 
 export interface BookingEmailData {
   customerEmail: string
@@ -190,45 +277,82 @@ export interface BookingEmailData {
 }
 
 export async function sendBookingEmails(data: BookingEmailData): Promise<void> {
-  const customerTemplateId = process.env.EMAILJS_TEMPLATE_BOOKING_CUSTOMER
-  const partnerTemplateId = process.env.EMAILJS_TEMPLATE_BOOKING_PARTNER
-
   const paymentLabel = PAYMENT_LABELS[data.paymentMethod] ?? data.paymentMethod
-  const totalFormatted = fmtXAF(data.totalXaf)
+  const total = fmtXAF(data.totalXaf)
 
   // A gift booking labels the arriving guest so both emails stay unambiguous
-  const giftNote = data.isGift && data.beneficiaryName
-    ? ` (gift booking — guest: ${data.beneficiaryName})`
-    : ''
+  const giftNote =
+    data.isGift && data.beneficiaryName
+      ? ` (réservation cadeau — invité : ${data.beneficiaryName})`
+      : ''
+  const listingName = data.listingName + giftNote
 
-  // 1. Confirmation to customer (the payer, for gift bookings)
-  if (customerTemplateId) {
-    await sendEmail(customerTemplateId, {
-      to_name: data.customerName,
-      to_email: data.customerEmail,
-      listing_name: data.listingName + giftNote,
-      booking_ref: data.bookingRef,
-      dates: data.dates,
-      guests: data.guests,
-      total: totalFormatted,
-      payment_method: paymentLabel,
-    })
-  }
+  const details = detailBlock({
+    listingName,
+    bookingRef: data.bookingRef,
+    dates: data.dates,
+    guests: data.guests,
+    total,
+    paymentMethod: paymentLabel,
+  })
 
-  // 2. Alert to business partner
-  if (partnerTemplateId && data.partnerEmail) {
-    await sendEmail(partnerTemplateId, {
-      to_name: data.partnerName ?? 'Partner',
-      to_email: data.partnerEmail,
-      listing_name: data.listingName + giftNote,
-      customer_name: data.isGift && data.beneficiaryName ? data.beneficiaryName : data.customerName,
-      customer_phone: data.customerPhone,
-      customer_email: data.customerEmail,
-      booking_ref: data.bookingRef,
-      dates: data.dates,
-      guests: data.guests,
-      total: totalFormatted,
-      payment_method: paymentLabel,
+  // 1. Acknowledgement to the customer (the payer, for gift bookings).
+  //    Careful wording: the request is *sent*, not accepted. Only the venue
+  //    can accept it, and it has not answered yet.
+  await sendMail({
+    to: data.customerEmail,
+    toName: data.customerName,
+    subject: `Demande de réservation ${data.bookingRef} — ${data.listingName}`,
+    body: lines(
+      `Bonjour ${data.customerName},`,
+      '',
+      `Votre demande a bien été transmise à ${data.listingName}. ` +
+        `L'établissement vous répondra pour confirmer ou refuser — vous recevrez un email et un SMS dès sa réponse.`,
+      '',
+      details,
+      '',
+      `Suivez ou annulez votre réservation ici : ${APP_URL}/booking`,
+      '',
+      '— — —',
+      '',
+      `Hello ${data.customerName}, your request has been passed to ${data.listingName}. ` +
+        `The venue will confirm or decline it, and we'll email and text you the moment it answers.`,
+      `Track or cancel your booking: ${APP_URL}/booking`,
+      '',
+      'Reserve237',
+    ),
+  })
+
+  // 2. Alert to the business — the only email that needs to prompt an action
+  if (data.partnerEmail) {
+    const guestName =
+      data.isGift && data.beneficiaryName ? data.beneficiaryName : data.customerName
+
+    await sendMail({
+      to: data.partnerEmail,
+      toName: data.partnerName ?? 'Partenaire',
+      replyTo: data.customerEmail,
+      subject: `Nouvelle réservation ${data.bookingRef} — ${data.listingName}`,
+      body: lines(
+        `Bonjour ${data.partnerName ?? ''},`.replace(' ,', ','),
+        '',
+        `Vous avez une nouvelle demande de réservation. Confirmez-la ou refusez-la depuis votre tableau de bord — ` +
+          `le client sera prévenu automatiquement de votre réponse.`,
+        '',
+        details,
+        '',
+        `Client : ${guestName}`,
+        `Téléphone : ${data.customerPhone}`,
+        `Email : ${data.customerEmail}`,
+        '',
+        `Répondre maintenant : ${APP_URL}/dashboard`,
+        '',
+        '— — —',
+        '',
+        `You have a new booking request. Confirm or decline it from your dashboard and the guest is notified automatically.`,
+        '',
+        'Reserve237',
+      ),
     })
   }
 }
