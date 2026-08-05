@@ -32,6 +32,7 @@ const footerLinks: { title: TranslationKey; links: { label: TranslationKey; href
     title: "footer_company",
     links: [
       { label: "footer_about", href: "/about" },
+      { label: "lookup_title", href: "/booking" },
       { label: "nav_contact", href: "/contact" },
       { label: "privacy_policy", href: "/privacy" },
       { label: "terms_of_service", href: "/terms" },

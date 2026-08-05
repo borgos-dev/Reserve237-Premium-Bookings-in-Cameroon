@@ -51,6 +51,11 @@ export const bookings = pgTable('bookings', {
     .default('pending')
     .notNull(),
   notes: text('notes'),
+  // Cancellation trail — who pulled out and why, so the other party is told
+  // something more useful than "cancelled".
+  cancelledAt: timestamp('cancelled_at'),
+  cancelledBy: text('cancelled_by', { enum: ['partner', 'customer'] }),
+  cancellationReason: text('cancellation_reason'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })

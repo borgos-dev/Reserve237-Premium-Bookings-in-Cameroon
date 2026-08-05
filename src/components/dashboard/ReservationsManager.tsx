@@ -22,6 +22,7 @@ import {
   RiStarLine,
   RiInformationLine,
   RiGiftLine,
+  RiWhatsappLine,
 } from "react-icons/ri";
 import { updateBookingStatus, type PartnerBooking, type BookingStatusUpdate } from "@/actions/bookings";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -101,6 +102,42 @@ function nightCount(checkIn: string | null, checkOut: string | null): number | n
   return Math.round(ms / 86_400_000);
 }
 
+// ─── One-tap WhatsApp reply ───────────────────────────────────────────────────
+// Reserve237 already emails and texts the client automatically, but a message
+// typed from the venue's own number is what people here actually trust. This
+// pre-writes it so the partner only has to press send — and from that point the
+// conversation continues directly between the two of them.
+
+function whatsappReplyLink(booking: PartnerBooking, lang: string): string | null {
+  const digits = booking.guestPhone.replace(/\D/g, "");
+  if (digits.length < 8) return null;
+
+  const ref = booking.id.slice(0, 8).toUpperCase();
+  const dates = formatDateRange(booking);
+  const fr = lang === "fr";
+
+  const body =
+    booking.status === "confirmed"
+      ? fr
+        ? [`Bonjour ${booking.guestName}, votre réservation chez ${booking.listingName} est confirmée ✅`,
+           `📅 ${dates}`, `👥 ${booking.guests} personne(s)`, `🔖 Réf ${ref}`, `À bientôt !`]
+        : [`Hello ${booking.guestName}, your booking at ${booking.listingName} is confirmed ✅`,
+           `📅 ${dates}`, `👥 ${booking.guests} guest(s)`, `🔖 Ref ${ref}`, `See you soon!`]
+      : booking.status === "cancelled"
+        ? fr
+          ? [`Bonjour ${booking.guestName}, nous sommes désolés — votre réservation ${ref} du ${dates} chez ${booking.listingName} n'a pas pu être confirmée.`,
+             `Aucun montant n'a été prélevé.`]
+          : [`Hello ${booking.guestName}, we're sorry — your booking ${ref} for ${dates} at ${booking.listingName} could not be confirmed.`,
+             `No money has been taken.`]
+        : fr
+          ? [`Bonjour ${booking.guestName}, nous avons bien reçu votre demande de réservation chez ${booking.listingName}.`,
+             `📅 ${dates} · 👥 ${booking.guests} personne(s) · 🔖 Réf ${ref}`]
+          : [`Hello ${booking.guestName}, we've received your booking request for ${booking.listingName}.`,
+             `📅 ${dates} · 👥 ${booking.guests} guest(s) · 🔖 Ref ${ref}`];
+
+  return `https://wa.me/${digits}?text=${encodeURIComponent(body.join("\n"))}`;
+}
+
 // ─── Booking card ─────────────────────────────────────────────────────────────
 
 function BookingCard({
@@ -108,18 +145,21 @@ function BookingCard({
   onUpdateStatus,
 }: {
   booking: PartnerBooking & { _updating?: string | null };
-  onUpdateStatus: (id: string, status: BookingStatusUpdate) => Promise<void>;
+  onUpdateStatus: (id: string, status: BookingStatusUpdate, reason?: string) => Promise<void>;
 }) {
   const { t, lang } = useLanguage();
   const [expanded, setExpanded] = useState(false);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
+  const [decliningReason, setDecliningReason] = useState<string | null>(null);
 
   const nights = nightCount(booking.checkIn, booking.checkOut);
+  const waLink = whatsappReplyLink(booking, lang);
 
-  async function handleAction(status: BookingStatusUpdate) {
+  async function handleAction(status: BookingStatusUpdate, reason?: string) {
     setLoadingAction(status);
-    await onUpdateStatus(booking.id, status);
+    await onUpdateStatus(booking.id, status, reason);
     setLoadingAction(null);
+    setDecliningReason(null);
   }
 
   return (
@@ -212,6 +252,17 @@ function BookingCard({
                     <RiMailLine className="w-3.5 h-3.5 shrink-0" />
                     {booking.guestEmail}
                   </div>
+                  {waLink && (
+                    <a
+                      href={waLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-1.5 w-full mt-1 px-3 py-2 rounded-lg bg-[#25D366] hover:bg-[#20BA5A] text-white text-xs font-semibold transition-colors"
+                    >
+                      <RiWhatsappLine className="w-4 h-4" />
+                      {t("res_whatsapp_client")}
+                    </a>
+                  )}
                 </div>
 
                 {/* Booking details */}
@@ -302,67 +353,107 @@ function BookingCard({
               </div>
 
               {/* Action buttons */}
-              <div className="flex gap-2.5 pt-1">
-                {booking.status === "pending" && (
-                  <>
+              {decliningReason !== null ? (
+                // Declining without a reason leaves the client guessing, so the
+                // reason is collected here and travels with the notification.
+                <div className="space-y-2.5 pt-1">
+                  <p className="text-xs font-semibold text-[#1F2A2A]">{t("res_decline_title")}</p>
+                  <p className="text-[11px] text-[#1F2A2A]/50 leading-relaxed">{t("res_decline_body")}</p>
+                  <input
+                    type="text"
+                    value={decliningReason}
+                    onChange={(e) => setDecliningReason(e.target.value)}
+                    placeholder={t("res_decline_ph")}
+                    maxLength={200}
+                    className="w-full px-3 py-2 text-xs bg-white border border-[#1F2A2A]/12 rounded-xl text-[#1F2A2A] placeholder:text-[#1F2A2A]/30 focus:outline-none focus:ring-2 focus:ring-[#13695A] focus:border-[#13695A] transition-all"
+                  />
+                  <div className="flex gap-2.5">
                     <button
-                      onClick={() => handleAction("cancelled")}
+                      onClick={() => setDecliningReason(null)}
                       disabled={loadingAction !== null}
-                      className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 text-xs font-semibold transition-colors disabled:opacity-50"
+                      className="px-4 py-2.5 rounded-xl border border-[#1F2A2A]/15 text-[#1F2A2A]/60 hover:bg-[#1F2A2A]/5 text-xs font-semibold transition-colors disabled:opacity-50"
+                    >
+                      {t("res_decline_back")}
+                    </button>
+                    <button
+                      onClick={() => handleAction("cancelled", decliningReason)}
+                      disabled={loadingAction !== null}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-xs font-semibold transition-colors disabled:opacity-50"
                     >
                       {loadingAction === "cancelled"
                         ? <RiLoader4Line className="w-3.5 h-3.5 animate-spin" />
                         : <RiCloseLine className="w-3.5 h-3.5" />
                       }
-                      {t("res_reject")}
+                      {t("res_decline_cta")}
                     </button>
-                    <button
-                      onClick={() => handleAction("confirmed")}
-                      disabled={loadingAction !== null}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#13695A] hover:bg-[#0A5C4A] text-white text-xs font-semibold transition-colors disabled:opacity-50"
-                    >
-                      {loadingAction === "confirmed"
-                        ? <RiLoader4Line className="w-3.5 h-3.5 animate-spin" />
-                        : <RiCheckLine className="w-3.5 h-3.5" />
-                      }
-                      {t("res_confirm_booking")}
-                    </button>
-                  </>
-                )}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2 pt-1">
+                  <div className="flex gap-2.5">
+                    {booking.status === "pending" && (
+                      <>
+                        <button
+                          onClick={() => setDecliningReason("")}
+                          disabled={loadingAction !== null}
+                          className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 text-xs font-semibold transition-colors disabled:opacity-50"
+                        >
+                          <RiCloseLine className="w-3.5 h-3.5" />
+                          {t("res_reject")}
+                        </button>
+                        <button
+                          onClick={() => handleAction("confirmed")}
+                          disabled={loadingAction !== null}
+                          className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#13695A] hover:bg-[#0A5C4A] text-white text-xs font-semibold transition-colors disabled:opacity-50"
+                        >
+                          {loadingAction === "confirmed"
+                            ? <RiLoader4Line className="w-3.5 h-3.5 animate-spin" />
+                            : <RiCheckLine className="w-3.5 h-3.5" />
+                          }
+                          {t("res_confirm_booking")}
+                        </button>
+                      </>
+                    )}
 
-                {booking.status === "confirmed" && (
-                  <>
-                    <button
-                      onClick={() => handleAction("cancelled")}
-                      disabled={loadingAction !== null}
-                      className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-[#1F2A2A]/15 text-[#1F2A2A]/60 hover:bg-[#1F2A2A]/5 text-xs font-semibold transition-colors disabled:opacity-50"
-                    >
-                      {loadingAction === "cancelled"
-                        ? <RiLoader4Line className="w-3.5 h-3.5 animate-spin" />
-                        : <RiCloseLine className="w-3.5 h-3.5" />
-                      }
-                      {t("cancel")}
-                    </button>
-                    <button
-                      onClick={() => handleAction("completed")}
-                      disabled={loadingAction !== null}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors disabled:opacity-50"
-                    >
-                      {loadingAction === "completed"
-                        ? <RiLoader4Line className="w-3.5 h-3.5 animate-spin" />
-                        : <RiStarLine className="w-3.5 h-3.5" />
-                      }
-                      {t("res_mark_completed")}
-                    </button>
-                  </>
-                )}
+                    {booking.status === "confirmed" && (
+                      <>
+                        <button
+                          onClick={() => setDecliningReason("")}
+                          disabled={loadingAction !== null}
+                          className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-[#1F2A2A]/15 text-[#1F2A2A]/60 hover:bg-[#1F2A2A]/5 text-xs font-semibold transition-colors disabled:opacity-50"
+                        >
+                          <RiCloseLine className="w-3.5 h-3.5" />
+                          {t("cancel")}
+                        </button>
+                        <button
+                          onClick={() => handleAction("completed")}
+                          disabled={loadingAction !== null}
+                          className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors disabled:opacity-50"
+                        >
+                          {loadingAction === "completed"
+                            ? <RiLoader4Line className="w-3.5 h-3.5 animate-spin" />
+                            : <RiStarLine className="w-3.5 h-3.5" />
+                          }
+                          {t("res_mark_completed")}
+                        </button>
+                      </>
+                    )}
 
-                {(booking.status === "cancelled" || booking.status === "completed") && (
-                  <p className="text-xs text-[#1F2A2A]/35 italic">
-                    {t("res_no_actions")}
-                  </p>
-                )}
-              </div>
+                    {(booking.status === "cancelled" || booking.status === "completed") && (
+                      <p className="text-xs text-[#1F2A2A]/35 italic">
+                        {t("res_no_actions")}
+                      </p>
+                    )}
+                  </div>
+
+                  {(booking.status === "pending" || booking.status === "confirmed") && (
+                    <p className="flex items-center gap-1.5 text-[10px] text-[#1F2A2A]/40">
+                      <RiInformationLine className="w-3 h-3 shrink-0" />
+                      {t("res_client_notified")}
+                    </p>
+                  )}
+                </div>
+              )}
 
             </div>
           </motion.div>
@@ -406,8 +497,8 @@ export function ReservationsManager({ initialBookings, userId }: ReservationsMan
     return list;
   }, [bookings, activeTab, search]);
 
-  async function handleUpdateStatus(id: string, status: BookingStatusUpdate) {
-    const result = await updateBookingStatus(id, userId, status);
+  async function handleUpdateStatus(id: string, status: BookingStatusUpdate, reason?: string) {
+    const result = await updateBookingStatus(id, userId, status, reason);
     if (result.success) {
       setBookings((prev) =>
         prev.map((b) => (b.id === id ? { ...b, status } : b))

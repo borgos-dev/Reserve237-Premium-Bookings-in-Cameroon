@@ -1525,3 +1525,65 @@ from the findings (explicitly NOT review replies, NOT hiding the dead Withdraw/P
   city pills on the homepage can never show a 7th city.
 - Payout promise in Terms ("MoMo within 48h of confirmation") has no mechanism behind it — Campay
   phase. Same for the 7% fee: it is computed and stored, never collected.
+
+---
+
+## Session 26 — Closing the booking loop (2026-08-05)
+
+The platform is the pipe between client and business, not a party to the booking. The pipe only ran
+one direction: a booking reached the partner, the partner's answer reached nobody.
+
+1. **The client is finally told what the business decided.** `updateBookingStatus` now sends the
+   outcome on confirm / decline / complete. Two channels: email via the new
+   `EMAILJS_TEMPLATE_BOOKING_STATUS` template, and SMS. Both no-op silently when unconfigured, so
+   nothing breaks before the accounts exist. `sendBookingNoticeEmail()` in lib/email.ts is addressed
+   by `to_email`, so ONE template serves both directions — "the venue confirmed you" to the client
+   and "your client cancelled" to the business.
+2. **SMS layer** (`src/lib/sms.ts`) — provider-agnostic by design. `SMS_PROVIDER=twilio` (SID/token/
+   from) or `SMS_PROVIDER=generic` (`SMS_API_URL` + `SMS_API_KEY` + `SMS_SENDER_ID`, POSTs JSON
+   `{to, from, message}` with a Bearer header) so a local Cameroon aggregator can be dropped in
+   without touching app code. Unset = every call is a no-op. `toE164()` normalises 9-digit local
+   numbers, 237-prefixed, +237 and 00237 forms; returns null rather than burning credit on junk.
+   Message bodies are deliberately short — one GSM-7 segment is 160 chars and each extra is billed.
+3. **New booking now SMSes the business**, not just emails it. Email lands in an inbox a partner may
+   not open for hours; the SMS is what actually reaches them.
+4. **Customer cancellation was broken and is fixed.** ProfileContent called `updateBookingStatus`
+   with the CUSTOMER's Clerk id, but that action authorises solely via `businesses.ownerId` — so
+   every customer cancellation had always failed with "access denied". New `cancelOwnBooking()`
+   authorises via `bookings.userId`. The Cancel button now opens a confirm step with an optional
+   reason instead of firing immediately.
+5. **Cancellation rule (user's decision): open until the booking date has passed.** Enforced
+   server-side in `cancellableError()` and mirrored in both UIs. Migration
+   `0005_booking_cancellation.sql` adds `cancelled_at` / `cancelled_by` / `cancellation_reason`
+   (applied to prod via `src/db/apply-0005.ts`). Whoever cancels, the other side is notified and the
+   reason travels with the message.
+6. **Guests can finally track and cancel.** Booking never required sign-in but every status surface
+   did, so guests were orphaned after checkout. New `/booking` page: reference + the phone or email
+   used to book (both must match — the 8-char reference alone is not a secret). Linked from the
+   post-booking screen for guests and from the footer.
+7. **One-tap WhatsApp reply in the dashboard.** `wa.me/<client-number>` pre-filled with a
+   status-appropriate message in FR or EN. This does NOT send anything by itself — a human presses
+   send — but it comes from the venue's own number, which is what people here actually trust, and
+   the conversation then continues directly between the two parties.
+8. **Declining now requires a reason**, which is stored and included in the client's notification.
+
+Verified against prod (test rows created and deleted, table back to 0): guest lookup rejects a wrong
+contact, matches on email and on a differently-formatted phone, cancels, and refuses a second
+cancel; owner can confirm and decline-with-reason, a stranger cannot; a customer can cancel their
+own booking but not someone else's; a past-dated booking is refused.
+
+**Setup still owed by the user before these actually deliver:**
+- Create the `EMAILJS_TEMPLATE_BOOKING_STATUS` EmailJS template (params: `to_name`, `to_email`,
+  `listing_name`, `booking_ref`, `dates`, `guests`, `status_label`, `message`) and set the env var
+  on Vercel. Until then, status emails silently do not send.
+- Open an SMS gateway account and set `SMS_PROVIDER` + its keys on Vercel.
+- **Businesses have no phone saved.** The only prod business has `phone = null`, so it has no SMS
+  destination. Partners must fill Settings > phone or the SMS goes nowhere.
+
+**Still not fixed (carried forward):**
+- Dashboard "Withdraw" and "Promo" buttons do nothing (user chose to keep them visible).
+- Partners cannot reply to reviews — note the `reviews` table ALREADY has `reply` / `replied_at`
+  columns, so this is UI-only work, no migration.
+- Partner sign-up + Settings still offer only 6 hardcoded cities, capping the homepage city pills.
+- No date / price / rating filters in browse (all three external reviewers flagged this).
+- Payout promise in Terms and the 7% fee still have no mechanism — Campay phase.

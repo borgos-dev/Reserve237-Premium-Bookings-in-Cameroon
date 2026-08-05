@@ -584,6 +584,39 @@ export const translations = {
     res_mark_completed: "Marquer comme terminée",
     res_no_actions: "Aucune action supplémentaire disponible pour cette réservation.",
     pay_card: "Carte",
+    res_whatsapp_client: "Écrire au client sur WhatsApp",
+    res_client_notified: "Le client sera prévenu automatiquement par e-mail et SMS.",
+    res_decline_title: "Refuser cette réservation ?",
+    res_decline_body:
+      "Le client sera prévenu immédiatement. Indiquez brièvement pourquoi — sans motif, il ne saura pas quoi faire ensuite.",
+    res_decline_ph: "Ex. : complet ce soir-là, fermeture exceptionnelle…",
+    res_decline_back: "Retour",
+    res_decline_cta: "Refuser et prévenir",
+
+    // ── Annulation (client) ─────────────────────────────────────────────────
+    cancel_booking: "Annuler la réservation",
+    cancel_confirm_title: "Annuler cette réservation ?",
+    cancel_confirm_body:
+      "L'établissement sera prévenu et le créneau redeviendra disponible. Aucun montant n'a été prélevé.",
+    cancel_reason_ph: "Motif (facultatif)",
+    cancel_keep: "Garder",
+    cancel_confirm_cta: "Oui, annuler",
+    cancelling: "Annulation…",
+    cancel_failed: "Échec de l'annulation. Réessayez.",
+
+    // ── Suivi de réservation (invité) ───────────────────────────────────────
+    lookup_title: "Suivre ma réservation",
+    lookup_sub:
+      "Entrez votre référence pour voir où en est votre réservation — aucun compte nécessaire.",
+    lookup_ref_label: "Référence de réservation",
+    lookup_contact_label: "Téléphone ou e-mail",
+    lookup_contact_ph: "6XX XX XX XX ou vous@exemple.com",
+    lookup_contact_hint:
+      "Utilisez le numéro ou l'e-mail indiqué lors de la réservation.",
+    lookup_searching: "Recherche…",
+    lookup_cta: "Voir ma réservation",
+    lookup_reason: "Motif",
+    lookup_call_venue: "Appeler l'établissement",
 
     // ── Availability manager ────────────────────────────────────────────────
     av_subtitle:
@@ -1432,6 +1465,38 @@ export const translations = {
     res_mark_completed: "Mark as completed",
     res_no_actions: "No further actions available for this booking.",
     pay_card: "Card",
+    res_whatsapp_client: "Message client on WhatsApp",
+    res_client_notified: "The client is notified automatically by email and SMS.",
+    res_decline_title: "Decline this booking?",
+    res_decline_body:
+      "The client is told straight away. Add a short reason — without one they won't know what to do next.",
+    res_decline_ph: "e.g. fully booked that night, closed for a private event…",
+    res_decline_back: "Back",
+    res_decline_cta: "Decline and notify",
+
+    // ── Cancellation (customer) ─────────────────────────────────────────────
+    cancel_booking: "Cancel booking",
+    cancel_confirm_title: "Cancel this booking?",
+    cancel_confirm_body:
+      "The venue will be notified and the slot becomes available again. No money has been taken.",
+    cancel_reason_ph: "Reason (optional)",
+    cancel_keep: "Keep it",
+    cancel_confirm_cta: "Yes, cancel",
+    cancelling: "Cancelling…",
+    cancel_failed: "Could not cancel. Please try again.",
+
+    // ── Guest booking lookup ────────────────────────────────────────────────
+    lookup_title: "Track your booking",
+    lookup_sub:
+      "Enter your reference to see where your booking stands — no account needed.",
+    lookup_ref_label: "Booking reference",
+    lookup_contact_label: "Phone or email",
+    lookup_contact_ph: "6XX XX XX XX or you@example.com",
+    lookup_contact_hint: "Use the phone number or email you booked with.",
+    lookup_searching: "Searching…",
+    lookup_cta: "Find my booking",
+    lookup_reason: "Reason",
+    lookup_call_venue: "Call the venue",
 
     // ── Availability manager ────────────────────────────────────────────────
     av_subtitle:

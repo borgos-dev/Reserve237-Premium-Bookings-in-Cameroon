@@ -20,7 +20,7 @@ import {
   RiEditLine,
   RiHistoryLine,
 } from "react-icons/ri";
-import { updateBookingStatus } from "@/actions/bookings";
+import { cancelOwnBooking } from "@/actions/bookings";
 import { submitReview } from "@/actions/reviews";
 import type { UserBooking } from "@/actions/user";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -131,6 +131,9 @@ function BookingCard({
   onReviewSubmitted: (bookingId: string) => void;
 }) {
   const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState("");
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
   const [showReviewForm, setShowReviewForm] = useState(false);
   const { t } = useLanguage();
   const [rating, setRating] = useState(0);
@@ -141,9 +144,15 @@ function BookingCard({
 
   async function handleCancel() {
     setCancelling(true);
-    const result = await updateBookingStatus(booking.id, userId, "cancelled");
+    setCancelError("");
+    const result = await cancelOwnBooking(booking.id, userId, cancelReason || undefined);
     setCancelling(false);
-    if (result.success) onCancel(booking.id);
+    if (result.success) {
+      setConfirmingCancel(false);
+      onCancel(booking.id);
+    } else {
+      setCancelError(result.error ?? t("cancel_failed"));
+    }
   }
 
   async function handleReviewSubmit(e: React.FormEvent) {
@@ -168,7 +177,12 @@ function BookingCard({
     }
   }
 
-  const canCancel = booking.status === "pending" || booking.status === "confirmed";
+  // Cancellation stays open until the booking date itself has passed — the same
+  // rule the server enforces in cancelOwnBooking.
+  const serviceDate = booking.checkIn ?? booking.bookingDate;
+  const canCancel =
+    (booking.status === "pending" || booking.status === "confirmed") &&
+    (!serviceDate || serviceDate >= today);
   const canReview = !localHasReviewed &&
     (booking.status === "confirmed" || booking.status === "completed");
 
@@ -249,21 +263,57 @@ function BookingCard({
             </span>
           )}
 
-          {canCancel && (
+          {canCancel && !confirmingCancel && (
             <button
-              onClick={handleCancel}
-              disabled={cancelling}
-              className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
+              onClick={() => setConfirmingCancel(true)}
+              className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition-colors"
             >
-              {cancelling
-                ? <RiLoader4Line className="w-3.5 h-3.5 animate-spin" />
-                : <RiCloseCircleFill className="w-3.5 h-3.5" />
-              }
-              {t("cancel")}
+              <RiCloseCircleFill className="w-3.5 h-3.5" />
+              {t("cancel_booking")}
             </button>
           )}
         </div>
       </div>
+
+      {/* ── Cancellation confirmation ── */}
+      {confirmingCancel && (
+        <div className="border-t border-[var(--border)] pt-4 space-y-3">
+          <p className="text-sm font-semibold">{t("cancel_confirm_title")}</p>
+          <p className="text-xs text-[var(--muted-foreground)]">
+            {t("cancel_confirm_body")}
+          </p>
+          <input
+            type="text"
+            value={cancelReason}
+            onChange={(e) => setCancelReason(e.target.value)}
+            placeholder={t("cancel_reason_ph")}
+            maxLength={200}
+            className="input-field w-full text-sm"
+          />
+          {cancelError && <p className="text-xs text-red-500">{cancelError}</p>}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => { setConfirmingCancel(false); setCancelError(""); setCancelReason(""); }}
+              disabled={cancelling}
+              className="px-4 py-2 text-xs rounded-xl border border-[var(--border)] hover:bg-[var(--secondary)] transition-colors disabled:opacity-50"
+            >
+              {t("cancel_keep")}
+            </button>
+            <button
+              type="button"
+              onClick={handleCancel}
+              disabled={cancelling}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50"
+            >
+              {cancelling
+                ? <><RiLoader4Line className="w-3.5 h-3.5 animate-spin" /> {t("cancelling")}</>
+                : <><RiCloseCircleFill className="w-3.5 h-3.5" /> {t("cancel_confirm_cta")}</>
+              }
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Inline review form ── */}
       {showReviewForm && (

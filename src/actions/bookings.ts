@@ -3,7 +3,13 @@
 import { db } from '@/db'
 import { bookings, listings, businesses, availability } from '@/db/schema'
 import { eq, and, or, ilike, inArray, desc, gte, lt, sql } from 'drizzle-orm'
-import { sendBookingEmails } from '@/lib/email'
+import { sendBookingEmails, sendBookingStatusEmail, sendBookingNoticeEmail } from '@/lib/email'
+import {
+  sendSms,
+  newBookingSms,
+  bookingStatusSms,
+  clientCancelledSms,
+} from '@/lib/sms'
 import { checkRateLimit } from '@/lib/rateLimit'
 import { headers } from 'next/headers'
 
@@ -237,7 +243,12 @@ export async function createBooking(
     // 7. Send confirmation emails — fire-and-forget, never blocks the UI
     if (listing.businessId) {
       const [business] = await db
-        .select({ email: businesses.email, name: businesses.name })
+        .select({
+          email: businesses.email,
+          name: businesses.name,
+          phone: businesses.phone,
+          whatsapp: businesses.whatsapp,
+        })
         .from(businesses)
         .where(eq(businesses.id, listing.businessId))
         .limit(1)
@@ -264,6 +275,21 @@ export async function createBooking(
         isGift,
         beneficiaryName: isGift ? input.guestName : undefined,
       }).catch((err) => console.error('[createBooking] email error:', err))
+
+      // Email lands in an inbox the partner may not check for hours. The SMS is
+      // what actually reaches them, which is the difference between a confirmed
+      // booking and a guest who gave up and phoned somewhere else.
+      sendSms(
+        business?.phone ?? business?.whatsapp,
+        newBookingSms({
+          listingName: listing.name,
+          bookingRef,
+          dates,
+          guests,
+          guestName: input.guestName,
+          guestPhone: input.guestPhone,
+        })
+      ).catch((err) => console.error('[createBooking] sms error:', err))
     }
 
     return { success: true, bookingId: booking.id, bookingRef, totalXaf, serviceFeeXaf }
@@ -367,6 +393,142 @@ export async function getPartnerBookings(
   }))
 }
 
+// ─── Carrying the answer back ────────────────────────────────────────────────
+// Reserve237 doesn't decide a booking — the business does. But the platform is
+// the only thing standing between the two parties, so it has to deliver the
+// decision. Every status change goes out on both channels: email (free, always
+// on) and SMS (read on a phone, which is where Cameroon actually is).
+
+function bookingDates(b: {
+  checkIn: string | null
+  checkOut: string | null
+  bookingDate: string | null
+  bookingTime: string | null
+}): string {
+  if (b.checkIn && b.checkOut) return `${b.checkIn} → ${b.checkOut}`
+  if (b.checkIn) return b.checkIn
+  if (b.bookingDate) return b.bookingTime ? `${b.bookingDate} · ${b.bookingTime}` : b.bookingDate
+  return '—'
+}
+
+/** The date a booking is actually for — used for the cancellation window. */
+function serviceDate(b: { checkIn: string | null; bookingDate: string | null }): string | null {
+  return b.checkIn ?? b.bookingDate
+}
+
+const bookingWithVenue = {
+  id: bookings.id,
+  userId: bookings.userId,
+  status: bookings.status,
+  guestName: bookings.guestName,
+  guestEmail: bookings.guestEmail,
+  guestPhone: bookings.guestPhone,
+  bookerEmail: bookings.bookerEmail,
+  bookerName: bookings.bookerName,
+  isGift: bookings.isGift,
+  checkIn: bookings.checkIn,
+  checkOut: bookings.checkOut,
+  bookingDate: bookings.bookingDate,
+  bookingTime: bookings.bookingTime,
+  guests: bookings.guests,
+  listingName: listings.name,
+  businessName: businesses.name,
+  businessEmail: businesses.email,
+  businessPhone: businesses.phone,
+  businessWhatsapp: businesses.whatsapp,
+  ownerId: businesses.ownerId,
+}
+
+/** Everything the two notification helpers below need to write a message. */
+interface BookingNotice {
+  id: string
+  isGift: boolean
+  guestName: string
+  guestEmail: string
+  guestPhone: string
+  bookerName: string | null
+  bookerEmail: string | null
+  checkIn: string | null
+  checkOut: string | null
+  bookingDate: string | null
+  bookingTime: string | null
+  guests: number
+  listingName: string
+  businessName: string
+  businessEmail: string | null
+  businessPhone: string | null
+  businessWhatsapp: string | null
+}
+
+/** Tells the client what the business decided. Fire-and-forget. */
+async function notifyClient(
+  b: BookingNotice,
+  status: 'confirmed' | 'cancelled' | 'completed',
+  opts?: { reason?: string | null; cancelledBy?: 'partner' | 'customer' }
+): Promise<void> {
+  const ref = b.id.slice(0, 8).toUpperCase()
+  const dates = bookingDates(b)
+  // For a gift the payer is the one who needs to hear back, not the beneficiary.
+  const email = b.isGift && b.bookerEmail ? b.bookerEmail : b.guestEmail
+  const name = b.isGift && b.bookerName ? b.bookerName : b.guestName
+
+  await Promise.allSettled([
+    sendBookingStatusEmail({
+      customerEmail: email,
+      customerName: name,
+      listingName: b.listingName,
+      bookingRef: ref,
+      dates,
+      guests: b.guests,
+      status,
+      reason: opts?.reason,
+      cancelledBy: opts?.cancelledBy,
+      partnerPhone: b.businessPhone ?? b.businessWhatsapp,
+    }),
+    sendSms(
+      b.guestPhone,
+      bookingStatusSms({ listingName: b.listingName, bookingRef: ref, dates, guests: b.guests, status })
+    ),
+  ])
+}
+
+/** Tells the business the client pulled out, so the slot is knowingly free. */
+async function notifyBusinessOfCancellation(b: BookingNotice, reason?: string | null): Promise<void> {
+  const ref = b.id.slice(0, 8).toUpperCase()
+  const dates = bookingDates(b)
+
+  await Promise.allSettled([
+    sendBookingNoticeEmail({
+      toEmail: b.businessEmail ?? '',
+      toName: b.businessName,
+      listingName: b.listingName,
+      bookingRef: ref,
+      dates,
+      guests: b.guests,
+      statusLabel: 'Cancelled by client / Annulée par le client',
+      message: [
+        `${b.guestName} (${b.guestPhone}) cancelled their booking at ${b.listingName}.`,
+        `When: ${dates} · ${b.guests} guest(s) · Reference ${ref}`,
+        reason ? `Reason: ${reason}` : 'No reason given.',
+        'These dates are free again for other bookings.',
+        '',
+        `${b.guestName} (${b.guestPhone}) a annulé sa réservation du ${dates}. `,
+        `Le créneau est de nouveau disponible.`,
+      ].join('\n'),
+    }),
+    sendSms(
+      b.businessPhone ?? b.businessWhatsapp,
+      clientCancelledSms({
+        listingName: b.listingName,
+        bookingRef: ref,
+        dates,
+        guests: b.guests,
+        guestName: b.guestName,
+      })
+    ),
+  ])
+}
+
 // ─── Partner: update booking status ──────────────────────────────────────────
 
 export type BookingStatusUpdate = 'confirmed' | 'cancelled' | 'completed'
@@ -374,32 +536,231 @@ export type BookingStatusUpdate = 'confirmed' | 'cancelled' | 'completed'
 export async function updateBookingStatus(
   bookingId: string,
   userId: string,
-  status: BookingStatusUpdate
+  status: BookingStatusUpdate,
+  reason?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const [row] = await db
-      .select({ bookingId: bookings.id })
+      .select(bookingWithVenue)
       .from(bookings)
       .innerJoin(listings, eq(bookings.listingId, listings.id))
       .innerJoin(businesses, eq(listings.businessId, businesses.id))
-      .where(
-        and(
-          eq(bookings.id, bookingId),
-          eq(businesses.ownerId, userId)
-        )
-      )
+      .where(and(eq(bookings.id, bookingId), eq(businesses.ownerId, userId)))
       .limit(1)
 
     if (!row) return { success: false, error: 'Booking not found or access denied.' }
 
+    const cancelling = status === 'cancelled'
     await db
       .update(bookings)
-      .set({ status, updatedAt: new Date() })
+      .set({
+        status,
+        updatedAt: new Date(),
+        ...(cancelling
+          ? {
+              cancelledAt: new Date(),
+              cancelledBy: 'partner' as const,
+              cancellationReason: reason?.trim() || null,
+            }
+          : {}),
+      })
       .where(eq(bookings.id, bookingId))
+
+    // The decision is worthless to the client if it never leaves the dashboard.
+    void notifyClient(row, status, {
+      reason: cancelling ? reason ?? null : null,
+      cancelledBy: cancelling ? 'partner' : undefined,
+    }).catch((err) => console.error('[updateBookingStatus] notify error:', err))
 
     return { success: true }
   } catch (err) {
     console.error('[updateBookingStatus]', err)
     return { success: false, error: 'Failed to update booking.' }
+  }
+}
+
+// ─── Customer: cancel your own booking ───────────────────────────────────────
+// Deliberately a separate action. updateBookingStatus authorises by business
+// ownership, which a customer can never satisfy — pointing the profile page at
+// it meant every customer cancellation failed.
+
+/** Cancellation stays open until the booking date has passed. */
+function cancellableError(b: { status: string; checkIn: string | null; bookingDate: string | null }): string | null {
+  if (b.status === 'cancelled') return 'This booking is already cancelled.'
+  if (b.status === 'completed') return 'This booking is already completed and cannot be cancelled.'
+  const when = serviceDate(b)
+  if (when && when < new Date().toISOString().slice(0, 10)) {
+    return 'This booking date has already passed. Please contact the venue directly.'
+  }
+  return null
+}
+
+export async function cancelOwnBooking(
+  bookingId: string,
+  userId: string,
+  reason?: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const [row] = await db
+      .select(bookingWithVenue)
+      .from(bookings)
+      .innerJoin(listings, eq(bookings.listingId, listings.id))
+      .innerJoin(businesses, eq(listings.businessId, businesses.id))
+      .where(and(eq(bookings.id, bookingId), eq(bookings.userId, userId)))
+      .limit(1)
+
+    if (!row) return { success: false, error: 'Booking not found or access denied.' }
+
+    const blocked = cancellableError(row)
+    if (blocked) return { success: false, error: blocked }
+
+    await db
+      .update(bookings)
+      .set({
+        status: 'cancelled',
+        cancelledAt: new Date(),
+        cancelledBy: 'customer',
+        cancellationReason: reason?.trim() || null,
+        updatedAt: new Date(),
+      })
+      .where(eq(bookings.id, bookingId))
+
+    void notifyBusinessOfCancellation(row, reason).catch((err) =>
+      console.error('[cancelOwnBooking] notify error:', err)
+    )
+    void notifyClient(row, 'cancelled', { reason, cancelledBy: 'customer' }).catch((err) =>
+      console.error('[cancelOwnBooking] receipt error:', err)
+    )
+
+    return { success: true }
+  } catch (err) {
+    console.error('[cancelOwnBooking]', err)
+    return { success: false, error: 'Failed to cancel booking.' }
+  }
+}
+
+// ─── Guest: look up and cancel without an account ────────────────────────────
+// Booking never required sign-in, but every status surface did — so guests
+// could book and then never learn anything again. Reference + the phone or
+// email used to book acts as the shared secret; both must match.
+
+export interface GuestBookingView {
+  id: string
+  ref: string
+  listingName: string
+  listingSlug: string
+  businessName: string
+  businessPhone: string | null
+  dates: string
+  guests: number
+  totalXaf: number
+  status: string
+  cancellationReason: string | null
+  canCancel: boolean
+}
+
+async function findGuestBooking(ref: string, contact: string) {
+  const cleanRef = ref.trim().toUpperCase()
+  const cleanContact = contact.trim().toLowerCase()
+  if (cleanRef.length !== 8 || !cleanContact) return null
+
+  const [row] = await db
+    .select({
+      ...bookingWithVenue,
+      listingSlug: listings.slug,
+      totalXaf: bookings.totalXaf,
+      cancellationReason: bookings.cancellationReason,
+    })
+    .from(bookings)
+    .innerJoin(listings, eq(bookings.listingId, listings.id))
+    .innerJoin(businesses, eq(listings.businessId, businesses.id))
+    // Postgres uuids render lowercase; the reference shown to guests is the
+    // first 8 characters upper-cased.
+    .where(sql`upper(left(${bookings.id}::text, 8)) = ${cleanRef}`)
+    .limit(1)
+
+  if (!row) return null
+
+  // The reference alone must not be enough — it is short and printable.
+  const phoneDigits = row.guestPhone.replace(/\D/g, '')
+  const contactDigits = cleanContact.replace(/\D/g, '')
+  const matches =
+    row.guestEmail.toLowerCase() === cleanContact ||
+    (row.bookerEmail?.toLowerCase() ?? '') === cleanContact ||
+    (contactDigits.length >= 8 && phoneDigits.endsWith(contactDigits.slice(-8)))
+
+  return matches ? row : null
+}
+
+export async function lookupGuestBooking(
+  ref: string,
+  contact: string
+): Promise<{ success: true; booking: GuestBookingView } | { success: false; error: string }> {
+  try {
+    const row = await findGuestBooking(ref, contact)
+    if (!row) {
+      return {
+        success: false,
+        error: 'No booking matches that reference and contact. Check both and try again.',
+      }
+    }
+
+    return {
+      success: true,
+      booking: {
+        id: row.id,
+        ref: row.id.slice(0, 8).toUpperCase(),
+        listingName: row.listingName,
+        listingSlug: row.listingSlug,
+        businessName: row.businessName,
+        businessPhone: row.businessPhone ?? row.businessWhatsapp,
+        dates: bookingDates(row),
+        guests: row.guests,
+        totalXaf: row.totalXaf,
+        status: row.status,
+        cancellationReason: row.cancellationReason,
+        canCancel: cancellableError(row) === null,
+      },
+    }
+  } catch (err) {
+    console.error('[lookupGuestBooking]', err)
+    return { success: false, error: 'Something went wrong. Please try again.' }
+  }
+}
+
+export async function cancelGuestBooking(
+  ref: string,
+  contact: string,
+  reason?: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const row = await findGuestBooking(ref, contact)
+    if (!row) return { success: false, error: 'Booking not found.' }
+
+    const blocked = cancellableError(row)
+    if (blocked) return { success: false, error: blocked }
+
+    await db
+      .update(bookings)
+      .set({
+        status: 'cancelled',
+        cancelledAt: new Date(),
+        cancelledBy: 'customer',
+        cancellationReason: reason?.trim() || null,
+        updatedAt: new Date(),
+      })
+      .where(eq(bookings.id, row.id))
+
+    void notifyBusinessOfCancellation(row, reason).catch((err) =>
+      console.error('[cancelGuestBooking] notify error:', err)
+    )
+    void notifyClient(row, 'cancelled', { reason, cancelledBy: 'customer' }).catch((err) =>
+      console.error('[cancelGuestBooking] receipt error:', err)
+    )
+
+    return { success: true }
+  } catch (err) {
+    console.error('[cancelGuestBooking]', err)
+    return { success: false, error: 'Failed to cancel booking.' }
   }
 }

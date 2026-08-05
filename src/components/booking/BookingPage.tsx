@@ -714,12 +714,22 @@ export function BookingPage({ listing, pricePerNight, mainCategory, userId, unav
                     {t("view_my_bookings")}
                   </Link>
                 ) : (
-                  <Link
-                    href="/"
-                    className="block w-full py-3 rounded-full bg-[#13695A] hover:bg-[#0A5C4A] text-[#F8F1EA] font-semibold transition-colors"
-                  >
-                    {t("back_to_home")}
-                  </Link>
+                  <>
+                    {/* A guest has no /profile to come back to — the reference
+                        lookup is their only way to check on this booking. */}
+                    <Link
+                      href="/booking"
+                      className="block w-full py-3 rounded-full bg-[#13695A] hover:bg-[#0A5C4A] text-[#F8F1EA] font-semibold transition-colors"
+                    >
+                      {t("lookup_title")}
+                    </Link>
+                    <Link
+                      href="/"
+                      className="block w-full py-3 rounded-full border border-[#1F2A2A]/15 hover:bg-[#1F2A2A]/5 font-semibold transition-colors"
+                    >
+                      {t("back_to_home")}
+                    </Link>
+                  </>
                 )}
               </div>
             </motion.div>

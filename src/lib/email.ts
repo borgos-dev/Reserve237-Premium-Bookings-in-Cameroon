@@ -60,6 +60,118 @@ export async function sendTeamNotification(data: TeamNotificationData): Promise<
   })
 }
 
+// ─── Booking outcome ──────────────────────────────────────────────────────────
+// The return leg of the conversation: the business answered, and the client has
+// to hear about it. Without this a client books, gets a "pending" email, and
+// never learns whether they have a table.
+//
+// Needs one EmailJS template exposed as EMAILJS_TEMPLATE_BOOKING_STATUS with
+// params: to_name, to_email, listing_name, booking_ref, dates, guests,
+// status_label, message. Unset → silent no-op, same as every other template.
+
+export interface BookingStatusEmailData {
+  customerEmail: string
+  customerName: string
+  listingName: string
+  bookingRef: string
+  dates: string
+  guests: number
+  status: 'confirmed' | 'cancelled' | 'completed'
+  /** Free-text reason shown to the client when a booking is cancelled. */
+  reason?: string | null
+  /** Who cancelled — changes the wording so nobody is blamed by mistake. */
+  cancelledBy?: 'partner' | 'customer' | null
+  /** Lets the client reply straight to the venue instead of to the platform. */
+  partnerPhone?: string | null
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  confirmed: 'Confirmed / Confirmée',
+  cancelled: 'Cancelled / Annulée',
+  completed: 'Completed / Terminée',
+}
+
+/**
+ * Low-level sender for the status template. Addressed by to_email, so the same
+ * template serves the client ("the venue confirmed you") and the business
+ * ("your client cancelled") — one template to configure instead of two.
+ */
+export async function sendBookingNoticeEmail(notice: {
+  toEmail: string
+  toName: string
+  listingName: string
+  bookingRef: string
+  dates: string
+  guests: number
+  statusLabel: string
+  message: string
+}): Promise<void> {
+  const templateId = process.env.EMAILJS_TEMPLATE_BOOKING_STATUS
+  if (!templateId || !notice.toEmail) return
+
+  await sendEmail(templateId, {
+    to_name: notice.toName,
+    to_email: notice.toEmail,
+    listing_name: notice.listingName,
+    booking_ref: notice.bookingRef,
+    dates: notice.dates,
+    guests: notice.guests,
+    status_label: notice.statusLabel,
+    message: notice.message,
+  })
+}
+
+function statusMessage(data: BookingStatusEmailData): string {
+  const contact = data.partnerPhone
+    ? `\n\nQuestions? Call the venue directly on ${data.partnerPhone}.`
+    : ''
+
+  if (data.status === 'confirmed') {
+    return (
+      `Good news — ${data.listingName} has confirmed your booking for ${data.dates}.\n` +
+      `Show reference ${data.bookingRef} on arrival.` +
+      contact +
+      `\n\nBonne nouvelle — ${data.listingName} a confirmé votre réservation pour ${data.dates}. ` +
+      `Présentez la référence ${data.bookingRef} à votre arrivée.`
+    )
+  }
+
+  if (data.status === 'cancelled') {
+    const who =
+      data.cancelledBy === 'customer'
+        ? 'Your booking has been cancelled as requested.'
+        : `${data.listingName} could not honour your booking for ${data.dates}.`
+    const why = data.reason ? `\nReason: ${data.reason}` : ''
+    return (
+      `${who}${why}\nNo money has been taken.` +
+      contact +
+      `\n\nVotre réservation ${data.bookingRef} a été annulée.${
+        data.reason ? ` Motif : ${data.reason}` : ''
+      } Aucun montant n'a été prélevé.`
+    )
+  }
+
+  return (
+    `Thanks for visiting ${data.listingName}. Your booking ${data.bookingRef} is now complete — ` +
+    `we'd love to hear how it went.` +
+    `\n\nMerci d'avoir choisi ${data.listingName}. Votre réservation ${data.bookingRef} est terminée — ` +
+    `partagez votre avis.`
+  )
+}
+
+export async function sendBookingStatusEmail(data: BookingStatusEmailData): Promise<void> {
+  await sendBookingNoticeEmail({
+    toEmail: data.customerEmail,
+    toName: data.customerName,
+    listingName: data.listingName,
+    bookingRef: data.bookingRef,
+    dates: data.dates,
+    guests: data.guests,
+    statusLabel: STATUS_LABELS[data.status] ?? data.status,
+    message: statusMessage(data),
+  })
+}
+
 export interface BookingEmailData {
   customerEmail: string
   customerName: string
