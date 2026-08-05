@@ -280,7 +280,7 @@ export async function createBooking(
       // what actually reaches them, which is the difference between a confirmed
       // booking and a guest who gave up and phoned somewhere else.
       sendSms(
-        business?.phone ?? business?.whatsapp,
+        business?.phone || business?.whatsapp,
         newBookingSms({
           listingName: listing.name,
           bookingRef,
@@ -483,7 +483,7 @@ async function notifyClient(
       status,
       reason: opts?.reason,
       cancelledBy: opts?.cancelledBy,
-      partnerPhone: b.businessPhone ?? b.businessWhatsapp,
+      partnerPhone: b.businessPhone || b.businessWhatsapp,
     }),
     sendSms(
       b.guestPhone,
@@ -517,7 +517,7 @@ async function notifyBusinessOfCancellation(b: BookingNotice, reason?: string | 
       ].join('\n'),
     }),
     sendSms(
-      b.businessPhone ?? b.businessWhatsapp,
+      b.businessPhone || b.businessWhatsapp,
       clientCancelledSms({
         listingName: b.listingName,
         bookingRef: ref,
@@ -713,7 +713,7 @@ export async function lookupGuestBooking(
         listingName: row.listingName,
         listingSlug: row.listingSlug,
         businessName: row.businessName,
-        businessPhone: row.businessPhone ?? row.businessWhatsapp,
+        businessPhone: row.businessPhone || row.businessWhatsapp,
         dates: bookingDates(row),
         guests: row.guests,
         totalXaf: row.totalXaf,
