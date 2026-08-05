@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
 import emailjs from "@emailjs/browser";
 import {
@@ -74,17 +75,30 @@ export default function ContactPage() {
       <NewNavbar />
       <main className="bg-[var(--surface-1)] text-[var(--foreground)] min-h-screen pb-24">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-28">
-          {/* Header */}
+          {/* Header — dark panel so the light logo artwork shows properly */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="text-center mb-12"
+            className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#13695A] via-[#0F5F50] to-[#0A5C4A] px-6 py-12 sm:py-14 text-center mb-12"
           >
-            <h1 className="font-display text-4xl sm:text-5xl font-bold mb-3">{t("contact_title")}</h1>
-            <p className="text-[var(--muted-foreground)] text-base sm:text-lg max-w-xl mx-auto">
-              {t("contact_subtitle")}
-            </p>
+            <div className="absolute -top-20 -left-20 w-64 h-64 bg-[#E8B923] rounded-full blur-[120px] opacity-15 pointer-events-none" />
+            <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-[#F8F1EA] rounded-full blur-[120px] opacity-10 pointer-events-none" />
+            <div className="relative z-10">
+              <Image
+                src="/Reserve237-logo-tight.png"
+                alt="Reserve237"
+                width={274}
+                height={148}
+                unoptimized
+                priority
+                className="h-20 sm:h-24 w-auto mx-auto mb-6 drop-shadow-[0_0_35px_rgba(232,185,35,0.45)]"
+              />
+              <h1 className="font-display text-4xl sm:text-5xl font-bold mb-3 text-[#F8F1EA]">{t("contact_title")}</h1>
+              <p className="text-[#F8F1EA]/80 text-base sm:text-lg max-w-xl mx-auto">
+                {t("contact_subtitle")}
+              </p>
+            </div>
           </motion.div>
 
           {/* Form */}
