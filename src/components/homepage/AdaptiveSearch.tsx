@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useCategoryStore, useBrowseStore } from "@/stores";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { RiMapPinLine, RiCalendarLine, RiTimeLine, RiTeamLine, RiBuildingLine, RiSearchLine } from "react-icons/ri";
+import { RiMapPinLine, RiCalendarLine, RiTimeLine, RiTeamLine, RiBuildingLine } from "react-icons/ri";
 import { motion, AnimatePresence } from "motion/react";
 
 const optionStyle = { color: "#1F2A2A", backgroundColor: "#F8F1EA" };
@@ -160,11 +160,9 @@ export function AdaptiveSearch() {
           </motion.div>
         </AnimatePresence>
 
-        <button
-          type="submit"
-          className="btn-primary w-full sm:w-auto sm:px-10 mt-4 py-3.5 inline-flex items-center justify-center gap-2 font-semibold"
-        >
-          <RiSearchLine className="w-5 h-5" />
+        {/* No visible button by design — Enter submits (hidden button keeps
+            implicit form submission working across browsers) */}
+        <button type="submit" className="sr-only">
           {t("hero_search_button")}
         </button>
       </form>

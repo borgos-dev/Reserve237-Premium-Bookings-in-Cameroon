@@ -9,10 +9,6 @@ import { RiAppsLine, RiSearchLine, RiCloseLine, RiMapPinLine } from "react-icons
 import type { PublicListing } from "@/types/listing";
 import { useLanguage } from "@/contexts/LanguageContext";
 
-// Mirrors CITIES in src/db/schema/listings.ts — duplicated so this client
-// component never pulls the drizzle schema into the browser bundle.
-const CITIES = ["Yaounde", "Douala", "Limbe", "Bafoussam", "Bamenda", "Kribi"];
-
 interface SearchFilterSectionProps {
   listings: PublicListing[];
 }
@@ -20,6 +16,18 @@ interface SearchFilterSectionProps {
 export function SearchFilterSection({ listings }: SearchFilterSectionProps) {
   const { browseFilter, setBrowseFilter, searchQuery, setSearchQuery, cityFilter, setCityFilter } = useBrowseStore();
   const { t } = useLanguage();
+
+  // Cities come from the listings themselves — any city a partner lists in
+  // appears here automatically, no hardcoded list to go stale.
+  const cities = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const l of listings) {
+      if (l.city) counts.set(l.city, (counts.get(l.city) ?? 0) + 1);
+    }
+    return Array.from(counts.entries())
+      .map(([city, count]) => ({ city, count }))
+      .sort((a, b) => (b.count !== a.count ? b.count - a.count : a.city.localeCompare(b.city)));
+  }, [listings]);
 
   // Deep links: /?category=nightlife&city=Douala&q=rooftop#browse
   // (used by footer category links; read once on mount)
@@ -31,7 +39,7 @@ export function SearchFilterSection({ listings }: SearchFilterSectionProps) {
     if (category && (ALL_MAIN_CATEGORIES as readonly string[]).includes(category)) {
       setBrowseFilter(category);
     }
-    if (city && CITIES.includes(city)) setCityFilter(city);
+    if (city) setCityFilter(city);
     if (q) setSearchQuery(q);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -72,41 +80,60 @@ export function SearchFilterSection({ listings }: SearchFilterSectionProps) {
     <section className="py-12 bg-[var(--background)]" id="browse">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        {/* Search Bar + City filter */}
-        <div className="mb-6 max-w-2xl mx-auto flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <RiSearchLine className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--muted-foreground)] pointer-events-none" />
-            <input
-              type="text"
-              placeholder={t("search_placeholder")}
-              className="input-field pl-12 pr-10 w-full py-4 text-base"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
-              >
-                <RiCloseLine className="w-5 h-5" />
-              </button>
-            )}
-          </div>
-          <div className="relative sm:w-52">
-            <RiMapPinLine className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--muted-foreground)] pointer-events-none" />
-            <select
-              value={cityFilter}
-              onChange={(e) => setCityFilter(e.target.value)}
-              aria-label={t("filter_city")}
-              className="input-field pl-12 w-full py-4 text-base appearance-none cursor-pointer"
+        {/* Search Bar */}
+        <div className="relative mb-4 max-w-2xl mx-auto">
+          <RiSearchLine className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--muted-foreground)] pointer-events-none" />
+          <input
+            type="text"
+            placeholder={t("search_placeholder")}
+            className="input-field pl-12 pr-10 w-full py-4 text-base"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
             >
-              <option value="all">{t("all_cities")}</option>
-              {CITIES.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
+              <RiCloseLine className="w-5 h-5" />
+            </button>
+          )}
         </div>
+
+        {/* City pills — built from real listing data, so any new city a
+            partner lists in shows up here automatically */}
+        {cities.length > 0 && (
+          <div className="flex gap-2 flex-wrap justify-center mb-8 max-w-3xl mx-auto">
+            <button
+              onClick={() => setCityFilter("all")}
+              className={`px-4 py-2 rounded-full border text-sm font-medium transition-all ${
+                cityFilter === "all"
+                  ? "border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]"
+                  : "border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:border-[var(--primary)] hover:text-[var(--foreground)]"
+              }`}
+            >
+              {t("all_cities")}
+            </button>
+            {cities.map(({ city, count }) => {
+              const active = cityFilter === city;
+              return (
+                <button
+                  key={city}
+                  onClick={() => setCityFilter(active ? "all" : city)}
+                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full border text-sm font-medium transition-all ${
+                    active
+                      ? "border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]"
+                      : "border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:border-[var(--primary)] hover:text-[var(--foreground)]"
+                  }`}
+                >
+                  <RiMapPinLine className="w-3.5 h-3.5" />
+                  {city}
+                  <span className={active ? "opacity-80" : "opacity-60"}>({count})</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* Category Filters */}
         <div className="mb-4 text-center sm:text-left">
