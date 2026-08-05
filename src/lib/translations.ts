@@ -771,6 +771,29 @@ export const translations = {
       "L'inscription est gratuite. Nous ne prenons que 7% de commission sur les réservations confirmées, avec des paiements directs via MTN MoMo ou Orange Money. Votre établissement peut être en ligne en moins de 10 minutes.",
     about_cta_pre: "Une question ?",
     about_cta_link: "Contactez-nous",
+    about_hero_title: "Le meilleur du Cameroun, réservable en un clic.",
+    about_stat_1_v: "6",
+    about_stat_1_l: "catégories d'expériences",
+    about_stat_2_v: "FR · EN",
+    about_stat_2_l: "site 100% bilingue",
+    about_stat_3_v: "7%",
+    about_stat_3_l: "de commission, uniquement sur réservations confirmées",
+    about_stat_4_v: "10 min",
+    about_stat_4_l: "pour mettre votre établissement en ligne",
+    about_values_title: "Nos valeurs",
+    about_v1_title: "Local d'abord",
+    about_v1_body:
+      "XAF, MTN MoMo & Orange Money, WhatsApp — les outils que le Cameroun utilise vraiment.",
+    about_v2_title: "Confiance",
+    about_v2_body:
+      "Des avis liés à de vraies réservations et des badges vérifiés qui se méritent.",
+    about_v3_title: "Simplicité",
+    about_v3_body:
+      "Cherchez, comparez, réservez en quelques clics — avec une référence à présenter à l'arrivée.",
+    about_v4_title: "Pensé pour la diaspora",
+    about_v4_body:
+      "Offrez un séjour ou un dîner à un proche au Cameroun — vous payez, il ou elle en profite. Prix aussi en € et $.",
+    about_explore_categories: "Explorez nos catégories",
 
     // ── Booking (availability + confirmation) ────────────────────────────────
     date_unavailable:
@@ -1570,6 +1593,29 @@ export const translations = {
       "Listing is free. We only take a 7% commission on confirmed bookings, with direct payouts via MTN MoMo or Orange Money. Your venue can be live in under 10 minutes.",
     about_cta_pre: "Questions?",
     about_cta_link: "Contact us",
+    about_hero_title: "The best of Cameroon, one booking away.",
+    about_stat_1_v: "6",
+    about_stat_1_l: "experience categories",
+    about_stat_2_v: "FR · EN",
+    about_stat_2_l: "fully bilingual site",
+    about_stat_3_v: "7%",
+    about_stat_3_l: "commission, only on confirmed bookings",
+    about_stat_4_v: "10 min",
+    about_stat_4_l: "to get your venue online",
+    about_values_title: "Our values",
+    about_v1_title: "Local first",
+    about_v1_body:
+      "XAF, MTN MoMo & Orange Money, WhatsApp — the tools Cameroon actually uses.",
+    about_v2_title: "Trust",
+    about_v2_body:
+      "Reviews tied to real bookings, and verified badges that are earned.",
+    about_v3_title: "Simplicity",
+    about_v3_body:
+      "Search, compare, book in a few clicks — with a reference to show on arrival.",
+    about_v4_title: "Built for the diaspora",
+    about_v4_body:
+      "Treat a loved one in Cameroon to a stay or a dinner — you pay, they enjoy. Prices also in € and $.",
+    about_explore_categories: "Explore our categories",
 
     // ── Booking (availability + confirmation) ────────────────────────────────
     date_unavailable: "This date is not available. Please choose another one.",
